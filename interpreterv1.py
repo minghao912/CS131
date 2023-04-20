@@ -32,7 +32,7 @@ class Interpreter(InterpreterBase):
             else:
                 self.classes[top_level_chunk[1]] = ClassDefinition(
                     top_level_chunk, 
-                    lambda err_msg, err_line: self.error(ErrorType.NAME_ERROR, err_msg, err_line)
+                    lambda err_msg, err_line: self.__error_thrower("NAME", err_msg, err_line)
                 )
 
         # Find main class
@@ -41,6 +41,20 @@ class Interpreter(InterpreterBase):
 
         # Instantiate and run main class
         main_class = self.classes['main'].instantiate_self()
-        main_class.call_method('main', [], lambda method_name: self.error(ErrorType.NAME_ERROR, f"Could not find method {method_name}"))
+        main_class.call_method(
+            'main', 
+            [], 
+            lambda err_type, err_msg: self.__error_thrower(err_type, err_msg, None)
+        )
 
         return
+
+    def __error_thrower(self, err_type: str, err_msg: str, err_line: str):
+        err_type_local = None
+        match err_type:
+            case "NAME":
+                err_type_local = ErrorType.NAME_ERROR
+            case "TYPE":
+                err_type_local = ErrorType.TYPE_ERROR
+
+        self.error(err_type_local, err_msg, err_line)
