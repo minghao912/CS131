@@ -47,6 +47,9 @@ class Interpreter(InterpreterBase):
             lambda err_type, err_msg: self.__error_thrower(err_type, err_msg, None)
         )
 
+        # DEBUG
+        print(f"Main.x is: {main_class.fields['x']}")
+
         return
 
     def __error_thrower(self, err_type: str, err_msg: str, err_line: str):
