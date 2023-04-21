@@ -158,10 +158,19 @@ class ObjectDefinition:
             else:
                 raw_type, raw_thing = utils.parse_type_value(expression)
 
+                append_this = None
                 if raw_type is not None:
-                    about_to_print.append(raw_thing)
+                    append_this = Field("temp", raw_type, raw_thing)
                 else:
-                    about_to_print.append(self.__get_var_value(method_params, raw_thing, interpreter).value)
+                    append_this = self.__get_var_value(expression, method_params, interpreter)
+
+                # Special handling since Python uses "True/False" while Brewin uses "true/false" and "None" vs. null
+                if append_this.type == Type.BOOL:
+                    about_to_print.append("true" if append_this.value else "false")
+                elif append_this.type == Type.NULL:
+                    about_to_print.append("null")
+                else:
+                    about_to_print.append(append_this.value)
 
         final_string = "".join(map(str, about_to_print))
         interpreter.output(final_string)
