@@ -41,12 +41,7 @@ class Interpreter(InterpreterBase):
 
         # Instantiate and run main class
         main_class = self.classes['main'].instantiate_self()
-        main_class.call_method(
-            'main', 
-            [], 
-            lambda err_type, err_msg: self.__error_thrower(err_type, err_msg, None),
-            self.__string_printer
-        )
+        main_class.call_method('main', [], self)
 
         # DEBUG
         print(f"Main.x is: {main_class.fields['x'].value}")
