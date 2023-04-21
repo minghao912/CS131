@@ -1,3 +1,4 @@
+from inspect import trace
 from intbase import ErrorType, InterpreterBase 
 from bparser import BParser
 from classdef import ClassDefinition
@@ -11,6 +12,7 @@ class Interpreter(InterpreterBase):
 
         # Instance vars
         self.classes: Dict[str, ClassDefinition] = dict()
+        self.trace_output = trace_output
 
     def run(self, program: List[str]):
         # Parse program
@@ -30,35 +32,18 @@ class Interpreter(InterpreterBase):
             if top_level_chunk[1] in self.classes:
                 self.error(ErrorType.NAME_ERROR, f"Duplicate class name {top_level_chunk[1]}", top_level_chunk[1].line_num)
             else:
-                self.classes[top_level_chunk[1]] = ClassDefinition(
-                    top_level_chunk, 
-                    lambda err_msg, err_line: self.__error_thrower("NAME", err_msg, err_line)
-                )
+                self.classes[top_level_chunk[1]] = ClassDefinition(top_level_chunk, self, self.trace_output)
 
         # Find main class
         if "main" not in self.classes:
-            self.error(ErrorType.TYPE_ERROR, "No class named main found")
+            self.error(ErrorType.TYPE_ERROR, "No main class found")
 
         # Instantiate and run main class
         main_class = self.classes['main'].instantiate_self()
         main_class.call_method('main', [], self)
 
         # DEBUG
-        print(f"Main.x is: {main_class.fields['x'].value}")
+        if self.trace_output:
+            print(f"Main.x is: {main_class.fields['x'].value}")
 
         return
-
-    def __string_printer(self, string: str):
-        self.output(string)
-
-    def __error_thrower(self, err_type: str, err_msg: str, err_line: str):
-        err_type_local = None
-        match err_type:
-            case "NAME":
-                err_type_local = ErrorType.NAME_ERROR
-            case "TYPE":
-                err_type_local = ErrorType.TYPE_ERROR
-            case "FAULT":
-                err_type_local = ErrorType.FAULT_ERROR
-
-        self.error(err_type_local, err_msg, err_line)

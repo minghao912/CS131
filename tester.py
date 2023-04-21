@@ -1,7 +1,7 @@
 from interpreterv1 import Interpreter
 
 program = ['(class main',
-                '(field x 0)',
+                '(field x 7)',
 
                 '(method hello_world () (print "hello world! the result of function call is: " (call me test x)))', 
                 '(method main ()',
@@ -11,7 +11,7 @@ program = ['(class main',
                     ')',
                 ')',
                 '(method test (arg)',
-                    '(return 6)'
+                    '(return arg)'
                 ')'
             ')',
             '(class main2',
