@@ -1,10 +1,9 @@
-from re import M
 from intbase import InterpreterBase
 from helperclasses import Field, Method
+from objdef import ObjectDefinition
+import utils as utils
 
 from typing import Callable, Dict, List
-
-from objdef import ObjectDefinition
 
 class ClassDefinition:
     def __init__(self, chunk: List[str | List[str]], error_callback: Callable[[str, str], None]):
@@ -24,7 +23,7 @@ class ClassDefinition:
                         error_callback("Duplicate field", body_chunk[0].line_num)
                         return
                     else:
-                        self.fields[body_chunk[1]] = Field(body_chunk[1], body_chunk[2])
+                        self.fields[body_chunk[1]] = Field(body_chunk[1], utils.parse_raw_value(body_chunk[2]))
                 # Methods are in format [1]: name, [2]: params list, [3]: body
                 case InterpreterBase.METHOD_DEF:
                     if body_chunk[1] in self.methods:

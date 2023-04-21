@@ -44,13 +44,17 @@ class Interpreter(InterpreterBase):
         main_class.call_method(
             'main', 
             [], 
-            lambda err_type, err_msg: self.__error_thrower(err_type, err_msg, None)
+            lambda err_type, err_msg: self.__error_thrower(err_type, err_msg, None),
+            self.__string_printer
         )
 
         # DEBUG
-        print(f"Main.x is: {main_class.fields['x']}")
+        print(f"Main.x is: {main_class.fields['x'].value}")
 
         return
+
+    def __string_printer(self, string: str):
+        self.output(string)
 
     def __error_thrower(self, err_type: str, err_msg: str, err_line: str):
         err_type_local = None
@@ -59,5 +63,7 @@ class Interpreter(InterpreterBase):
                 err_type_local = ErrorType.NAME_ERROR
             case "TYPE":
                 err_type_local = ErrorType.TYPE_ERROR
+            case "FAULT":
+                err_type_local = ErrorType.FAULT_ERROR
 
         self.error(err_type_local, err_msg, err_line)
