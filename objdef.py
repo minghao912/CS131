@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from xmlrpc.client import boolean
 from intbase import ErrorType, InterpreterBase
 from helperclasses import Field, Method, Type
 import utils as utils
@@ -99,6 +100,25 @@ class ObjectDefinition:
 
             case "while":
                 return StatementReturn(False, None)
+
+            case "new":
+                return StatementReturn(False, None)
+
+            case "+" | "-" | "*" | "/" | "%":
+                return StatementReturn(False, None)
+
+            case "<" | ">" | "<=" | ">=":
+                return StatementReturn(False, None)
+            
+            case "!=" | "==" | "&" | "|":
+                return StatementReturn(False, None)
+
+            case "!":
+                notted_boolean = self.__executor_unary_not(parameters, statement[1], interpreter)
+                return StatementReturn(False, notted_boolean)
+
+            case _:
+                interpreter.error(ErrorType.SYNTAX_ERROR, f"Unknown statement/expression: {command}")
 
     def __executor_begin(
         self, 
@@ -228,6 +248,15 @@ class ObjectDefinition:
         # If nowhere, return an error
         else:
             interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}")
+
+    def __executor_unary_not(self, method_params: Dict[str, Field], arg: str, interpreter: InterpreterBase) -> Field:
+        arg_value = self.__executor_return(method_params, arg, interpreter)
+
+        # Unary NOT only works on booleans
+        if arg_value.type != Type.BOOL:
+            interpreter.error(ErrorType.TYPE_ERROR, f"The operator '!' is not compatible with the type of variable '{arg}': {arg_value.type}")
+        else:
+            return Field("temp", Type.BOOL, not arg_value.value)
 
     def __get_var_value(self, var_name: str, method_params: Dict[str, Field], interpreter: InterpreterBase) -> Field:
         # A variable lookup
