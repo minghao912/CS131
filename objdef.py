@@ -104,7 +104,8 @@ class ObjectDefinition:
                 return StatementReturn(False, None)
 
             case "+" | "-" | "*" | "/" | "%":
-                return StatementReturn(False, None)
+                arithmetic_result = self.__executor_arithmetic(parameters, command, statement[1:], interpreter)
+                return StatementReturn(False, arithmetic_result)
 
             case "<" | ">" | "<=" | ">=":
                 return StatementReturn(False, None)
@@ -248,7 +249,51 @@ class ObjectDefinition:
         else:
             interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}")
 
-    def __executor_unary_not(self, method_params: Dict[str, Field], arg: str, interpreter: InterpreterBase) -> Field:
+    def __executor_arithmetic(self, 
+        method_params: Dict[str, Field], 
+        command: str, 
+        args: List[Field],
+        interpreter: InterpreterBase
+    ) -> Field:
+        if (len(args) > 2):
+            interpreter.error(ErrorType.SYNTAX_ERROR, f"Invalid number of operands for operator: {command}")
+
+        # Evaluate operands
+        arg_values: List[Field] = list()
+        for arg in args:
+            arg_values.append(self.__executor_return(method_params, arg, interpreter))  # Re-use some code, does the same stuff
+
+        # Operands can either be both strings (+) or both ints
+        both_strings = False
+        if command == "+" and arg_values[0].type == Type.STRING and arg_values[1].type == Type.STRING:
+            both_strings = True
+        elif arg_values[0].type == Type.INT and arg_values[1].type == Type.INT:
+            pass
+        else:
+            interpreter.error(ErrorType.TYPE_ERROR, f"Operands of type '{arg_values[0].type}' and '{arg_values[1].type}' are incompatible with operator: {command}")
+
+        result: str | int = None
+        match command:
+            case "+":
+                # Only + can have string operands
+                result = arg_values[0].value + arg_values[1].value
+            case "-":
+                result = arg_values[0].value - arg_values[1].value
+            case "*":
+                result = arg_values[0].value * arg_values[1].value
+            case "/":
+                result = arg_values[0].value / arg_values[1].value
+            case "%":
+                result = arg_values[0].value % arg_values[1].value
+
+        return Field("temp", Type.STRING if both_strings else Type.INT, result)
+
+    def __executor_unary_not(
+        self, 
+        method_params: Dict[str, Field], 
+        arg: str, 
+        interpreter: InterpreterBase
+    ) -> Field:
         arg_value = self.__executor_return(method_params, arg, interpreter)
 
         # Unary NOT only works on booleans
@@ -257,7 +302,12 @@ class ObjectDefinition:
         else:
             return Field("temp", Type.BOOL, not arg_value.value)
 
-    def __get_var_value(self, var_name: str, method_params: Dict[str, Field], interpreter: InterpreterBase) -> Field:
+    def __get_var_value(
+        self, 
+        var_name: str, 
+        method_params: Dict[str, Field], 
+        interpreter: InterpreterBase
+    ) -> Field:
         # A variable lookup
         if var_name in method_params:
             return method_params[var_name]

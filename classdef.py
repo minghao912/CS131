@@ -4,7 +4,7 @@ from helperclasses import Field, Method
 from objdef import ObjectDefinition
 import utils as utils
 
-from typing import Callable, Dict, List
+from typing import Dict, List
 
 class ClassDefinition:
     def __init__(self, chunk: List[str | List[str]], interpreter: InterpreterBase, trace_output: bool):
@@ -19,6 +19,7 @@ class ClassDefinition:
 
         for body_chunk in classbody:
             # Determine whether it's a method or field
+            # body_chunk still has line_num var
             match body_chunk[0]:
                 # Fields are in format (field field_name initial_value)
                 case InterpreterBase.FIELD_DEF:
