@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from xmlrpc.client import boolean
 from intbase import ErrorType, InterpreterBase
 from helperclasses import Field, Method, Type
 import utils as utils
@@ -65,12 +64,12 @@ class ObjectDefinition:
         # Run different handlers depending on the command
         command = statement[0]
         match command:
-            case "begin":
+            case InterpreterBase.BEGIN_DEF:
                 substatements = statement[1:]
                 return_initiated, return_field = self.__executor_begin(parameters, substatements, interpreter)
                 return StatementReturn(return_initiated, return_field)
 
-            case "call":
+            case InterpreterBase.CALL_DEF:
                 target_obj = statement[1]
                 method_name = statement[2]
                 method_args = statement[3:]
@@ -78,30 +77,30 @@ class ObjectDefinition:
                 function_return = self.__executor_call(parameters, target_obj, method_name, method_args, interpreter)
                 return StatementReturn(False, function_return)
 
-            case "if":
+            case InterpreterBase.IF_DEF:
                 return StatementReturn(False, None)
 
-            case "inputi" | "inputs":
+            case InterpreterBase.INPUT_INT_DEF | InterpreterBase.INPUT_STRING_DEF:
                 return StatementReturn(False, None)
 
-            case "print":
+            case InterpreterBase.PRINT_DEF:
                 stuff_to_print = statement[1:]
                 self.__executor_print(parameters, stuff_to_print, interpreter)
                 return StatementReturn(False, None)
 
-            case "return":
+            case InterpreterBase.RETURN_DEF:
                 if len(statement) < 2:
                     return StatementReturn(True, None)
                 return StatementReturn(True, self.__executor_return(parameters, statement[1], interpreter))
 
-            case "set":
+            case InterpreterBase.SET_DEF:
                 self.__executor_set(parameters, statement[1], statement[2], interpreter)
                 return StatementReturn(False, None)
 
-            case "while":
+            case InterpreterBase.WHILE_DEF:
                 return StatementReturn(False, None)
 
-            case "new":
+            case InterpreterBase.NEW_DEF:
                 return StatementReturn(False, None)
 
             case "+" | "-" | "*" | "/" | "%":
@@ -148,7 +147,7 @@ class ObjectDefinition:
             arg_values.append(self.__executor_return(method_params, arg, interpreter))  # Re-use some code, does the same stuff
 
         # Call a method in my own object
-        if target_obj == "me":
+        if target_obj == InterpreterBase.ME_DEF:
             return self.call_method(method_name, arg_values, interpreter)
         
         # Call a method in another object
@@ -186,9 +185,9 @@ class ObjectDefinition:
 
                 # Special handling since Python uses "True/False" while Brewin uses "true/false" and "None" vs. null
                 if append_this.type == Type.BOOL:
-                    about_to_print.append("true" if append_this.value else "false")
+                    about_to_print.append(InterpreterBase.TRUE_DEF if append_this.value else InterpreterBase.FALSE_DEF)
                 elif append_this.type == Type.NULL:
-                    about_to_print.append("null")
+                    about_to_print.append(InterpreterBase.NULL_DEF)
                 else:
                     about_to_print.append(append_this.value)
 
