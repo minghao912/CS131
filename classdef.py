@@ -19,7 +19,6 @@ class ClassDefinition:
 
         for body_chunk in classbody:
             # Determine whether it's a method or field
-            # body_chunk still has line_num var
             match body_chunk[0]:
                 # Fields are in format (field field_name initial_value)
                 case InterpreterBase.FIELD_DEF:

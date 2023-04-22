@@ -16,7 +16,7 @@ program = ['(class main',
                     ')',
                 ')',
                 '(method test (arg)',
-                    '(return (* arg 5))'
+                    '(return (+ arg 5))'
                 ')'
             ')',
             '(class main2',

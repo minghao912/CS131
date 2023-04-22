@@ -62,6 +62,7 @@ class ObjectDefinition:
             print(f"Statement to execute: {statement}")
 
         # Run different handlers depending on the command
+        # command has line_num property
         command = statement[0]
         match command:
             case InterpreterBase.BEGIN_DEF:
@@ -108,7 +109,8 @@ class ObjectDefinition:
                 return StatementReturn(False, arithmetic_result)
 
             case "<" | ">" | "<=" | ">=":
-                return StatementReturn(False, None)
+                comparison_result = self.__executor_compare(parameters, command, statement[1:], interpreter)
+                return StatementReturn(False, comparison_result)
             
             case "!=" | "==" | "&" | "|":
                 return StatementReturn(False, None)
@@ -287,6 +289,42 @@ class ObjectDefinition:
                 result = arg_values[0].value % arg_values[1].value
 
         return Field("temp", Type.STRING if both_strings else Type.INT, result)
+
+    def __executor_compare(self, 
+        method_params: Dict[str, Field], 
+        command: str, 
+        args: List[Field],
+        interpreter: InterpreterBase
+    ) -> Field:
+        if (len(args) > 2):
+            interpreter.error(ErrorType.SYNTAX_ERROR, f"Invalid number of operands for operator: {command}")
+
+        # Evaluate operands
+        arg_values: List[Field] = list()
+        for arg in args:
+            arg_values.append(self.__executor_return(method_params, arg, interpreter))  # Re-use some code, does the same stuff
+
+        # Operands can either be both strings or both ints
+        if arg_values[0].type == Type.STRING and arg_values[1].type == Type.STRING:
+            pass
+        elif arg_values[0].type == Type.INT and arg_values[1].type == Type.INT:
+            pass
+        else:
+            interpreter.error(ErrorType.TYPE_ERROR, f"Operands of type '{arg_values[0].type}' and '{arg_values[1].type}' are incompatible with operator: {command}")
+
+        # Do operation
+        result: bool = None
+        match command:
+            case "<":
+                result = arg_values[0].value < arg_values[1].value
+            case ">":
+                result = arg_values[0].value > arg_values[1].value
+            case "<=":
+                result = arg_values[0].value <= arg_values[1].value
+            case ">=":
+                result = arg_values[0].value >= arg_values[1].value
+
+        return Field("temp", Type.BOOL, result)
 
     def __executor_unary_not(
         self, 
