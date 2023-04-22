@@ -6,17 +6,17 @@ program = ['(class main',
                 '(field b true)',
 
                 '(method hello_world ()',
-                    '(print "hello world! the result of function call is: " x ", also field n is " n ", and the boolean is " b)',
+                    '(print "hello world! the result of function call is: " (call me test x) ", also field n is " n ", and the boolean is " b)',
                 ')', 
                 '(method main ()',
                     '(begin',
-                        '(set x (call me test x))',
+                        '(set x 5)',
                         '(set b (! b))',
                         '(call me hello_world)',
                     ')',
                 ')',
                 '(method test (arg)',
-                    '(return (+ arg 5))'
+                    '(return (| false true))'
                 ')'
             ')',
             '(class main2',

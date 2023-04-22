@@ -108,12 +108,9 @@ class ObjectDefinition:
                 arithmetic_result = self.__executor_arithmetic(parameters, command, statement[1:], interpreter)
                 return StatementReturn(False, arithmetic_result)
 
-            case "<" | ">" | "<=" | ">=":
+            case "<" | ">" | "<=" | ">=" | "!=" | "==" | "&" | "|":
                 comparison_result = self.__executor_compare(parameters, command, statement[1:], interpreter)
                 return StatementReturn(False, comparison_result)
-            
-            case "!=" | "==" | "&" | "|":
-                return StatementReturn(False, None)
 
             case "!":
                 notted_boolean = self.__executor_unary_not(parameters, statement[1], interpreter)
@@ -169,13 +166,22 @@ class ObjectDefinition:
         stuff_to_print: List[str], 
         interpreter: InterpreterBase
     ) -> None:
+        # Special handling since Python uses "True/False" while Brewin uses "true/false" and "None" vs. null
+        def __stringify(thing: Field) -> str:
+            if thing.type == Type.BOOL:
+                return InterpreterBase.TRUE_DEF if thing.value else InterpreterBase.FALSE_DEF
+            elif thing.type == Type.NULL:
+                return InterpreterBase.NULL_DEF
+            else:
+                return thing.value
+
         about_to_print = list()
 
         for expression in stuff_to_print:
             # Evaluate expression
             if isinstance(expression, list):
                 statement_return = self.__run_statement(method_params, expression, interpreter)
-                about_to_print.append(statement_return.return_field.value)
+                about_to_print.append(__stringify(statement_return.return_field))
             # Evaluate constant/literal or variable lookup
             else:
                 raw_type, raw_thing = utils.parse_type_value(expression)
@@ -186,13 +192,7 @@ class ObjectDefinition:
                 else:
                     append_this = self.__get_var_value(expression, method_params, interpreter)
 
-                # Special handling since Python uses "True/False" while Brewin uses "true/false" and "None" vs. null
-                if append_this.type == Type.BOOL:
-                    about_to_print.append(InterpreterBase.TRUE_DEF if append_this.value else InterpreterBase.FALSE_DEF)
-                elif append_this.type == Type.NULL:
-                    about_to_print.append(InterpreterBase.NULL_DEF)
-                else:
-                    about_to_print.append(append_this.value)
+                about_to_print.append(__stringify(append_this))      
 
         final_string = "".join(map(str, about_to_print))
         interpreter.output(final_string)
@@ -305,9 +305,15 @@ class ObjectDefinition:
             arg_values.append(self.__executor_return(method_params, arg, interpreter))  # Re-use some code, does the same stuff
 
         # Operands can either be both strings or both ints
-        if arg_values[0].type == Type.STRING and arg_values[1].type == Type.STRING:
+        int_string = [Type.INT, Type.STRING]
+        int_string_bool = [Type.INT, Type.STRING, Type.BOOL]
+        just_bool = [Type.BOOL]
+
+        if command in ["<", ">", "<=", ">="] and arg_values[0].type in int_string and arg_values[1].type in int_string:
             pass
-        elif arg_values[0].type == Type.INT and arg_values[1].type == Type.INT:
+        elif command in ["==", "!="] and arg_values[0].type in int_string_bool and arg_values[1].type in int_string_bool:
+            pass
+        elif command in ["&", "|"] and arg_values[0].type in just_bool and arg_values[1].type in just_bool:
             pass
         else:
             interpreter.error(ErrorType.TYPE_ERROR, f"Operands of type '{arg_values[0].type}' and '{arg_values[1].type}' are incompatible with operator: {command}")
@@ -315,6 +321,7 @@ class ObjectDefinition:
         # Do operation
         result: bool = None
         match command:
+            # These only work for ints and strings
             case "<":
                 result = arg_values[0].value < arg_values[1].value
             case ">":
@@ -323,6 +330,18 @@ class ObjectDefinition:
                 result = arg_values[0].value <= arg_values[1].value
             case ">=":
                 result = arg_values[0].value >= arg_values[1].value
+
+            # These work for ints, strings, and booleans
+            case "==":
+                result = arg_values[0].value == arg_values[1].value
+            case "!=":
+                result = arg_values[0].value != arg_values[1].value
+
+            # These only work for booleans
+            case "&":
+                result = arg_values[0].value and arg_values[1].value
+            case "|":
+                result = arg_values[0].value or arg_values[1].value
 
         return Field("temp", Type.BOOL, result)
 
