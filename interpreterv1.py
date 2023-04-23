@@ -1,4 +1,3 @@
-from inspect import trace
 from intbase import ErrorType, InterpreterBase 
 from bparser import BParser
 from classdef import ClassDefinition
@@ -11,7 +10,7 @@ class Interpreter(InterpreterBase):
         super().__init__(console_output, inp)   # call InterpreterBase’s constructor
 
         # Instance vars
-        self.classes: Dict[str, ClassDefinition] = dict()
+        self.__classes: Dict[str, ClassDefinition] = dict()
         self.trace_output = trace_output
 
     def run(self, program: List[str]):
@@ -29,17 +28,17 @@ class Interpreter(InterpreterBase):
                 continue
 
             # Create that class and add it to storage
-            if top_level_chunk[1] in self.classes:
+            if top_level_chunk[1] in self.__classes:
                 self.error(ErrorType.NAME_ERROR, f"Duplicate class name {top_level_chunk[1]}", top_level_chunk[1].line_num)
             else:
-                self.classes[top_level_chunk[1]] = ClassDefinition(top_level_chunk, self, self.trace_output)
+                self.__classes[top_level_chunk[1]] = ClassDefinition(top_level_chunk, self, self.trace_output)
 
         # Find main class
-        if "main" not in self.classes:
+        if "main" not in self.__classes:
             self.error(ErrorType.TYPE_ERROR, "No main class found")
 
         # Instantiate and run main class
-        main_class = self.classes['main'].instantiate_self()
+        main_class = self.__classes['main'].instantiate_self()
         main_class.call_method('main', [], self)
 
         # DEBUG
@@ -47,3 +46,9 @@ class Interpreter(InterpreterBase):
             print(f"Main.x is: {main_class.fields['x'].value}")
 
         return
+
+    def get_class(self, class_name: str) -> ClassDefinition | None:
+        if class_name not in self.__classes:
+            return None
+        else:
+            return self.__classes[class_name]

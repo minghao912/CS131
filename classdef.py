@@ -1,4 +1,3 @@
-from inspect import trace
 from intbase import ErrorType, InterpreterBase
 from helperclasses import Field, Method
 from objdef import ObjectDefinition

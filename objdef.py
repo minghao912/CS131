@@ -102,7 +102,8 @@ class ObjectDefinition:
                 return StatementReturn(False, None)
 
             case InterpreterBase.NEW_DEF:
-                return StatementReturn(False, None)
+                new_object_def = self.__executor_new(command.line_num, parameters, statement[1], interpreter)
+                return StatementReturn(False, new_object_def)
 
             case "+" | "-" | "*" | "/" | "%":
                 arithmetic_result = self.__executor_arithmetic(command.line_num, parameters, command, statement[1:], interpreter)
@@ -255,6 +256,24 @@ class ObjectDefinition:
         # If nowhere, return an error
         else:
             interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}", line_num)
+
+    def __executor_new(
+        self,
+        line_num: int, 
+        method_params: Dict[str, Field], 
+        arg: str, 
+        interpreter: any # (Interpreter, but there is a circular dependency so ignore for now)
+    ) -> Field:
+        # Look for requested class
+        other_class = interpreter.get_class(arg)
+        if other_class is None:
+            interpreter.error(ErrorType.TYPE_ERROR, f"Unknown class: {arg}", line_num)
+
+        # Create a new object
+        other_class_obj = other_class.instantiate_self()
+
+        # Return object as field
+        return Field("temp", Type.OBJ, other_class_obj)
 
     def __executor_arithmetic(
         self,  

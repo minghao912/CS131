@@ -13,6 +13,7 @@ class Type(Enum):
     STRING = 1
     BOOL = 2
     NULL = 3
+    OBJ = 4
 
 @dataclass
 class Field:
