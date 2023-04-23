@@ -67,7 +67,7 @@ class ObjectDefinition:
         match command:
             case InterpreterBase.BEGIN_DEF:
                 substatements = statement[1:]
-                return_initiated, return_field = self.__executor_begin(parameters, substatements, interpreter)
+                return_initiated, return_field = self.__executor_begin(command.line_num, parameters, substatements, interpreter)
                 return StatementReturn(return_initiated, return_field)
 
             case InterpreterBase.CALL_DEF:
@@ -75,7 +75,7 @@ class ObjectDefinition:
                 method_name = statement[2]
                 method_args = statement[3:]
 
-                function_return = self.__executor_call(parameters, target_obj, method_name, method_args, interpreter)
+                function_return = self.__executor_call(command.line_num, parameters, target_obj, method_name, method_args, interpreter)
                 return StatementReturn(False, function_return)
 
             case InterpreterBase.IF_DEF:
@@ -86,16 +86,16 @@ class ObjectDefinition:
 
             case InterpreterBase.PRINT_DEF:
                 stuff_to_print = statement[1:]
-                self.__executor_print(parameters, stuff_to_print, interpreter)
+                self.__executor_print(command.line_num, parameters, stuff_to_print, interpreter)
                 return StatementReturn(False, None)
 
             case InterpreterBase.RETURN_DEF:
                 if len(statement) < 2:
                     return StatementReturn(True, None)
-                return StatementReturn(True, self.__executor_return(parameters, statement[1], interpreter))
+                return StatementReturn(True, self.__executor_return(command.line_num, parameters, statement[1], interpreter))
 
             case InterpreterBase.SET_DEF:
-                self.__executor_set(parameters, statement[1], statement[2], interpreter)
+                self.__executor_set(command.line_num, parameters, statement[1], statement[2], interpreter)
                 return StatementReturn(False, None)
 
             case InterpreterBase.WHILE_DEF:
@@ -105,22 +105,23 @@ class ObjectDefinition:
                 return StatementReturn(False, None)
 
             case "+" | "-" | "*" | "/" | "%":
-                arithmetic_result = self.__executor_arithmetic(parameters, command, statement[1:], interpreter)
+                arithmetic_result = self.__executor_arithmetic(command.line_num, parameters, command, statement[1:], interpreter)
                 return StatementReturn(False, arithmetic_result)
 
             case "<" | ">" | "<=" | ">=" | "!=" | "==" | "&" | "|":
-                comparison_result = self.__executor_compare(parameters, command, statement[1:], interpreter)
+                comparison_result = self.__executor_compare(command.line_num, parameters, command, statement[1:], interpreter)
                 return StatementReturn(False, comparison_result)
 
             case "!":
-                notted_boolean = self.__executor_unary_not(parameters, statement[1], interpreter)
+                notted_boolean = self.__executor_unary_not(command.line_num, parameters, statement[1], interpreter)
                 return StatementReturn(False, notted_boolean)
 
             case _:
-                interpreter.error(ErrorType.SYNTAX_ERROR, f"Unknown statement/expression: {command}")
+                interpreter.error(ErrorType.SYNTAX_ERROR, f"Unknown statement/expression: {command}", command.line_num)
 
     def __executor_begin(
         self, 
+        line_num: int,
         method_params: Dict[str, Field], 
         substatements: List[str], 
         interpreter: InterpreterBase
@@ -134,7 +135,8 @@ class ObjectDefinition:
         return (False, statement_return.return_field)
 
     def __executor_call(
-        self, 
+        self,  
+        line_num: int,
         method_params: Dict[str, Field], 
         target_obj: str, 
         method_name: str, 
@@ -144,7 +146,7 @@ class ObjectDefinition:
         # Evaluate anything in args
         arg_values = list()
         for arg in method_args:
-            arg_values.append(self.__executor_return(method_params, arg, interpreter))  # Re-use some code, does the same stuff
+            arg_values.append(self.__executor_return(line_num, method_params, arg, interpreter))  # Re-use some code, does the same stuff
 
         # Call a method in my own object
         if target_obj == InterpreterBase.ME_DEF:
@@ -153,15 +155,16 @@ class ObjectDefinition:
         # Call a method in another object
         # Check to see if reference is valid
         if target_obj not in self.fields:
-            interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {target_obj}")
+            interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {target_obj}", line_num)
         if self.fields[target_obj].type is Type.NULL:
-            interpreter.error(ErrorType.FAULT_ERROR, f"Reference is null: {target_obj}")
+            interpreter.error(ErrorType.FAULT_ERROR, f"Reference is null: {target_obj}", line_num)
 
         other_obj: ObjectDefinition = self.fields[target_obj].value
         return other_obj.call_method(method_name, arg_values, interpreter)
 
     def __executor_print(
-        self, 
+        self,  
+        line_num: int,
         method_params: Dict[str, Field], 
         stuff_to_print: List[str], 
         interpreter: InterpreterBase
@@ -190,7 +193,7 @@ class ObjectDefinition:
                 if raw_type is not None:
                     append_this = Field("temp", raw_type, raw_thing)
                 else:
-                    append_this = self.__get_var_value(expression, method_params, interpreter)
+                    append_this = self.__get_var_value(line_num, expression, method_params, interpreter)
 
                 about_to_print.append(__stringify(append_this))      
 
@@ -198,7 +201,8 @@ class ObjectDefinition:
         interpreter.output(final_string)
 
     def __executor_return(
-        self, 
+        self,  
+        line_num: int,
         method_params: Dict[str, Field], 
         expr: str, 
         interpreter: InterpreterBase
@@ -218,10 +222,11 @@ class ObjectDefinition:
             
             # A variable lookup
             var_name = expr
-            return self.__get_var_value(var_name, method_params, interpreter)
+            return self.__get_var_value(line_num, var_name, method_params, interpreter)
 
     def __executor_set(
-        self, 
+        self,  
+        line_num: int,
         method_params: Dict[str, Field], 
         var_name: str, 
         new_val: any, 
@@ -232,7 +237,7 @@ class ObjectDefinition:
         if isinstance(new_val, list):
             statement_return = self.__run_statement(method_params, new_val, interpreter)
             if statement_return.return_field is None:
-                interpreter.error(ErrorType.TYPE_ERROR, f"Cannot set variable to result of void function")
+                interpreter.error(ErrorType.TYPE_ERROR, f"Cannot set variable to result of void function", line_num)
             else:
                 set_to_this = (statement_return.return_field.type, statement_return.return_field.value)
         # Get the constant/literal or variable
@@ -249,21 +254,23 @@ class ObjectDefinition:
             self.fields[var_name].value = set_to_this[1]
         # If nowhere, return an error
         else:
-            interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}")
+            interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}", line_num)
 
-    def __executor_arithmetic(self, 
+    def __executor_arithmetic(
+        self,  
+        line_num: int,
         method_params: Dict[str, Field], 
         command: str, 
         args: List[Field],
         interpreter: InterpreterBase
     ) -> Field:
         if (len(args) > 2):
-            interpreter.error(ErrorType.SYNTAX_ERROR, f"Invalid number of operands for operator: {command}")
+            interpreter.error(ErrorType.SYNTAX_ERROR, f"Invalid number of operands for operator: {command}", line_num)
 
         # Evaluate operands
         arg_values: List[Field] = list()
         for arg in args:
-            arg_values.append(self.__executor_return(method_params, arg, interpreter))  # Re-use some code, does the same stuff
+            arg_values.append(self.__executor_return(line_num, method_params, arg, interpreter))  # Re-use some code, does the same stuff
 
         # Operands can either be both strings (+) or both ints
         both_strings = False
@@ -272,7 +279,7 @@ class ObjectDefinition:
         elif arg_values[0].type == Type.INT and arg_values[1].type == Type.INT:
             pass
         else:
-            interpreter.error(ErrorType.TYPE_ERROR, f"Operands of type '{arg_values[0].type}' and '{arg_values[1].type}' are incompatible with operator: {command}")
+            interpreter.error(ErrorType.TYPE_ERROR, f"Operands of type '{arg_values[0].type}' and '{arg_values[1].type}' are incompatible with operator: {command}", line_num)
 
         result: str | int = None
         match command:
@@ -290,19 +297,21 @@ class ObjectDefinition:
 
         return Field("temp", Type.STRING if both_strings else Type.INT, result)
 
-    def __executor_compare(self, 
+    def __executor_compare(
+        self,  
+        line_num: int,
         method_params: Dict[str, Field], 
         command: str, 
         args: List[Field],
         interpreter: InterpreterBase
     ) -> Field:
         if (len(args) > 2):
-            interpreter.error(ErrorType.SYNTAX_ERROR, f"Invalid number of operands for operator: {command}")
+            interpreter.error(ErrorType.SYNTAX_ERROR, f"Invalid number of operands for operator: {command}", line_num)
 
         # Evaluate operands
         arg_values: List[Field] = list()
         for arg in args:
-            arg_values.append(self.__executor_return(method_params, arg, interpreter))  # Re-use some code, does the same stuff
+            arg_values.append(self.__executor_return(line_num, method_params, arg, interpreter))  # Re-use some code, does the same stuff
 
         # Operands can either be both strings or both ints
         int_string = [Type.INT, Type.STRING]
@@ -316,7 +325,7 @@ class ObjectDefinition:
         elif command in ["&", "|"] and arg_values[0].type in just_bool and arg_values[1].type in just_bool:
             pass
         else:
-            interpreter.error(ErrorType.TYPE_ERROR, f"Operands of type '{arg_values[0].type}' and '{arg_values[1].type}' are incompatible with operator: {command}")
+            interpreter.error(ErrorType.TYPE_ERROR, f"Operands of type '{arg_values[0].type}' and '{arg_values[1].type}' are incompatible with operator: {command}", line_num)
 
         # Do operation
         result: bool = None
@@ -346,21 +355,23 @@ class ObjectDefinition:
         return Field("temp", Type.BOOL, result)
 
     def __executor_unary_not(
-        self, 
+        self,  
+        line_num: int,
         method_params: Dict[str, Field], 
         arg: str, 
         interpreter: InterpreterBase
     ) -> Field:
-        arg_value = self.__executor_return(method_params, arg, interpreter)
+        arg_value = self.__executor_return(line_num, method_params, arg, interpreter)
 
         # Unary NOT only works on booleans
         if arg_value.type != Type.BOOL:
-            interpreter.error(ErrorType.TYPE_ERROR, f"The operator '!' is not compatible with the type of variable '{arg}': {arg_value.type}")
+            interpreter.error(ErrorType.TYPE_ERROR, f"The operator '!' is not compatible with the type of variable '{arg}': {arg_value.type}", line_num)
         else:
             return Field("temp", Type.BOOL, not arg_value.value)
 
     def __get_var_value(
-        self, 
+        self,  
+        line_num: int,
         var_name: str, 
         method_params: Dict[str, Field], 
         interpreter: InterpreterBase
@@ -373,4 +384,4 @@ class ObjectDefinition:
             return self.fields[var_name]
         # If nowhere, return an error
         else:
-            interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}")
+            interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}", line_num)
