@@ -192,7 +192,12 @@ class ObjectDefinition:
         false_clause = args[2] if len(args) == 3 else None
 
         # Evaluate predicate
-        predicate_val: bool = self.__executor_return(line_num, method_params, predicate, interpreter).value
+        predicate_val: bool = None
+        predicate_return: Field = self.__executor_return(line_num, method_params, predicate, interpreter)
+        if predicate_return.type != Type.BOOL:
+            interpreter.error(ErrorType.TYPE_ERROR, f"Predicate is not a boolean", line_num)
+        else:
+            predicate_val: bool = predicate_return.value
         
         # Run the correct clause
         if predicate_val:
