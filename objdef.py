@@ -410,7 +410,7 @@ class ObjectDefinition:
             case "*":
                 result = arg_values[0].value * arg_values[1].value
             case "/":
-                result = arg_values[0].value / arg_values[1].value
+                result = arg_values[0].value // arg_values[1].value     # Int division
             case "%":
                 result = arg_values[0].value % arg_values[1].value
 
