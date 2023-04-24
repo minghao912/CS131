@@ -79,7 +79,8 @@ class ObjectDefinition:
                 return StatementReturn(False, function_return)
 
             case InterpreterBase.IF_DEF:
-                return StatementReturn(False, None)
+                function_return = self.__executor_if(command.line_num, parameters, statement[1:], interpreter)
+                return StatementReturn(function_return[0], function_return[1])
 
             case InterpreterBase.INPUT_INT_DEF | InterpreterBase.INPUT_STRING_DEF:
                 return StatementReturn(False, None)
@@ -174,6 +175,33 @@ class ObjectDefinition:
             other_obj = self.fields[target_obj].value
 
         return other_obj.call_method(method_name, arg_values, interpreter)
+
+    def __executor_if(
+        self,
+        line_num: int, 
+        method_params: Dict[str, Field], 
+        args: List[str], 
+        interpreter: InterpreterBase
+    ) -> Tuple[bool, Field]:
+        if len(args) != 2 and len(args) != 3:
+            interpreter.error(ErrorType.SYNTAX_ERROR, "Too few or too many arguments for if statement", line_num)
+
+        # Separate the arguments
+        predicate = args[0]
+        true_clause = args[1]
+        false_clause = args[2] if len(args) == 3 else None
+
+        # Evaluate predicate
+        predicate_val: bool = self.__executor_return(line_num, method_params, predicate, interpreter).value
+        
+        # Run the correct clause
+        if predicate_val:
+            clause_return = self.__run_statement(method_params, true_clause, interpreter)
+            return (clause_return.return_initiated, clause_return.return_field)
+        else:
+            if false_clause is not None:
+                clause_return = self.__run_statement(method_params, false_clause, interpreter)
+                return (clause_return.return_initiated, clause_return.return_field)
 
     def __executor_print(
         self,  
