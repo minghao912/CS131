@@ -149,18 +149,30 @@ class ObjectDefinition:
         for arg in method_args:
             arg_values.append(self.__executor_return(line_num, method_params, arg, interpreter))  # Re-use some code, does the same stuff
 
-        # Call a method in my own object
-        if target_obj == InterpreterBase.ME_DEF:
-            return self.call_method(method_name, arg_values, interpreter)
-        
-        # Call a method in another object
-        # Check to see if reference is valid
-        if target_obj not in self.fields:
-            interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {target_obj}", line_num)
-        if self.fields[target_obj].type is Type.NULL:
-            interpreter.error(ErrorType.FAULT_ERROR, f"Reference is null: {target_obj}", line_num)
+        other_obj: ObjectDefinition = None
 
-        other_obj: ObjectDefinition = self.fields[target_obj].value
+        # Target object may be an expression
+        if isinstance(target_obj, list):
+            return_val = self.__executor_return(line_num, method_params, target_obj, interpreter).value
+            if not isinstance(return_val, ObjectDefinition):
+                interpreter.error(ErrorType.TYPE_ERROR, f"Expression does not return a class", line_num)
+            else:
+                other_obj = return_val
+        # Target object is a variable or "me"
+        else:
+            # Call a method in my own object
+            if target_obj == InterpreterBase.ME_DEF:
+                return self.call_method(method_name, arg_values, interpreter)
+            
+            # Call a method in another object
+            # Check to see if reference is valid
+            if target_obj not in self.fields:
+                interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {target_obj}", line_num)
+            if self.fields[target_obj].type is Type.NULL:
+                interpreter.error(ErrorType.FAULT_ERROR, f"Reference is null: {target_obj}", line_num)
+
+            other_obj = self.fields[target_obj].value
+
         return other_obj.call_method(method_name, arg_values, interpreter)
 
     def __executor_print(

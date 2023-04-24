@@ -11,14 +11,11 @@ program = ['(class main',
                 ')', 
                 '(method main ()',
                     '(begin',
-                        '(set x 5)',
-                        '(set b (! b))',
-                        '(set c (new main2))',
-                        '(call me hello_world)',
+                        '(call (call me test x) hello_world)',
                     ')',
                 ')',
                 '(method test (arg)',
-                    '(return (| null true))'
+                    '(return (new main2))'
                 ')'
             ')',
             '(class main2',
