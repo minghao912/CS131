@@ -435,11 +435,14 @@ class ObjectDefinition:
         # Operands can either be both strings or both ints
         int_string = [Type.INT, Type.STRING]
         int_string_bool = [Type.INT, Type.STRING, Type.BOOL]
+        obj_null = [Type.NULL, Type.OBJ]
         just_bool = [Type.BOOL]
 
         if command in ["<", ">", "<=", ">="] and arg_values[0].type in int_string and arg_values[1].type in int_string:
             pass
         elif command in ["==", "!="] and arg_values[0].type in int_string_bool and arg_values[1].type in int_string_bool:
+            pass
+        elif command in ["==", "!="] and arg_values[0].type in obj_null and arg_values[1].type in obj_null:
             pass
         elif command in ["&", "|"] and arg_values[0].type in just_bool and arg_values[1].type in just_bool:
             pass
