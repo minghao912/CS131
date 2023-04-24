@@ -101,7 +101,8 @@ class ObjectDefinition:
                 return StatementReturn(False, None)
 
             case InterpreterBase.WHILE_DEF:
-                return StatementReturn(False, None)
+                function_return = self.__executor_while(command.line_num, parameters, statement[1], statement[2], interpreter)
+                return StatementReturn(function_return[0], function_return[1])
 
             case InterpreterBase.NEW_DEF:
                 new_object_def = self.__executor_new(command.line_num, parameters, statement[1], interpreter)
@@ -208,6 +209,8 @@ class ObjectDefinition:
             if false_clause is not None:
                 clause_return = self.__run_statement(method_params, false_clause, interpreter)
                 return (clause_return.return_initiated, clause_return.return_field)
+            else:
+                return (False, None)
 
     def __executor_input(
         self,
@@ -230,7 +233,6 @@ class ObjectDefinition:
         self.fields[var].value = int(user_input) if read_in_int else user_input
 
         return Field("temp", self.fields[var].type, self.fields[var].value)
-
 
     def __executor_print(
         self,  
@@ -325,6 +327,35 @@ class ObjectDefinition:
         # If nowhere, return an error
         else:
             interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}", line_num)
+
+    def __executor_while(
+        self,
+        line_num: int, 
+        method_params: Dict[str, Field], 
+        predicate: str | List[str], 
+        true_clause: List[str], 
+        interpreter: InterpreterBase
+    ) -> Tuple[bool, Field]:
+        if predicate is None or true_clause is None:
+            interpreter.error(ErrorType.SYNTAX_ERROR, "Too few or too many arguments for if statement", line_num)
+
+        # Evaluate predicate
+        def __evaluate_predicate() -> bool:
+            predicate_val: bool = None
+            predicate_return: Field = self.__executor_return(line_num, method_params, predicate, interpreter)
+            if predicate_return.type != Type.BOOL:
+                interpreter.error(ErrorType.TYPE_ERROR, f"Predicate is not a boolean", line_num)
+            else:
+                predicate_val: bool = predicate_return.value
+            return predicate_val
+        
+        # Run the correct clause
+        while __evaluate_predicate():
+            clause_return = self.__run_statement(method_params, true_clause, interpreter)
+            if clause_return.return_initiated:
+                return (clause_return.return_initiated, clause_return.return_field)
+        else:
+            return (False, None)
 
     def __executor_new(
         self,
