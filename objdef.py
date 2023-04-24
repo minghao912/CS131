@@ -83,7 +83,8 @@ class ObjectDefinition:
                 return StatementReturn(function_return[0], function_return[1])
 
             case InterpreterBase.INPUT_INT_DEF | InterpreterBase.INPUT_STRING_DEF:
-                return StatementReturn(False, None)
+                input_field = self.__executor_input(command.line_num, parameters, command, statement[1], interpreter)
+                return StatementReturn(False, input_field)
 
             case InterpreterBase.PRINT_DEF:
                 stuff_to_print = statement[1:]
@@ -207,6 +208,29 @@ class ObjectDefinition:
             if false_clause is not None:
                 clause_return = self.__run_statement(method_params, false_clause, interpreter)
                 return (clause_return.return_initiated, clause_return.return_field)
+
+    def __executor_input(
+        self,
+        line_num: int, 
+        method_params: Dict[str, Field], 
+        command: str,
+        var: str, 
+        interpreter: InterpreterBase
+    ) -> Field:
+        # Check variable to read into exists
+        if var not in self.fields:
+            interpreter.error(ErrorType.NAME_ERROR, f"Unkonwn variable: {var}", line_num)
+
+        # Read input
+        user_input = interpreter.get_input()
+
+        # Set to var
+        read_in_int = (command == "inputi")
+        self.fields[var].type = Type.INT if read_in_int else Type.STRING
+        self.fields[var].value = int(user_input) if read_in_int else user_input
+
+        return Field("temp", self.fields[var].type, self.fields[var].value)
+
 
     def __executor_print(
         self,  
