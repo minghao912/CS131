@@ -29,7 +29,7 @@ class Interpreter(InterpreterBase):
 
             # Create that class and add it to storage
             if top_level_chunk[1] in self.__classes:
-                self.error(ErrorType.NAME_ERROR, f"Duplicate class name {top_level_chunk[1]}", top_level_chunk[1].line_num)
+                self.error(ErrorType.TYPE_ERROR, f"Duplicate class name {top_level_chunk[1]}", top_level_chunk[1].line_num)
             else:
                 self.__classes[top_level_chunk[1]] = ClassDefinition(top_level_chunk, self, self.trace_output)
 
