@@ -1,6 +1,7 @@
 from helperclasses import Type
+from intbase import InterpreterBase
 
-from typing import Tuple
+from typing import List, Tuple
 
 def parse_type_value(val: str) -> Tuple[Type | None, int | bool | None | str]:
     final_val = (None, None)
@@ -28,3 +29,32 @@ def parse_type_value(val: str) -> Tuple[Type | None, int | bool | None | str]:
             final_val = (Type.STRING, val[1:-1])
     finally:
         return final_val
+
+def parse_value_given_type(type_name: str, val: str, current_class_list: List[str]) -> Tuple[Type | None, int | bool | None | str]:
+    match type_name:
+        case InterpreterBase.INT_DEF:
+            try:
+                int_val = int(val)
+                return (Type.INT, int_val)
+            except ValueError:
+                return (None, None)
+        case InterpreterBase.BOOL_DEF:
+            val_lower = val.lower()
+            # Check boolean
+            if val_lower == "true":
+                return (Type.BOOL, True)
+            elif val_lower == "false":
+                return (Type.BOOL, False)
+            else:
+                return (None, None)
+        case InterpreterBase.STRING_DEF:
+            if '"' in val:
+                return (Type.STRING, val[1:-1])
+            else:
+                return (None, None)
+        case _:
+            # Check if it's a class
+            if type_name in current_class_list:
+                return (Type.OBJ_NAME, type_name)
+            else:
+                return (None, None)

@@ -14,9 +14,11 @@ class Type(Enum):
     BOOL = 2
     NULL = 3
     OBJ = 4
+    OBJ_NAME = 5
 
 @dataclass
 class Field:
     name: str
     type: Type
     value: any
+    obj_name: str = None

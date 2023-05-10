@@ -1,29 +1,17 @@
-from interpreterv1 import Interpreter
+from interpreterv2 import Interpreter
 
 program = [
-    '(class main',
-        '(field x 0)',
-        '(field n null)',
-        '(field b true)',
-        '(field c null)',
-
-        '(method hello_world ()',
-            '(print "hello world! the result of function call is: " c ", also field n is " n ", and the boolean is " b)',
-        ')', 
-        '(method main ()',
-            '(begin',
-                '(inputi x)',
-                '(set c (call me test x))',
-                '(call me hello_world)',
-            ')',
-        ')',
-        '(method test (arg)',
-            '(return (/ x 6))',
-        ')'
+    '(class person',
+        '(field person hey null)',
     ')',
-    '(class p',
-        '(method hello_world () (print "hello world!"))', 
-        '(method main () (call me hello_world))',
+    '(class main',
+        #'(method int add ((int a) (int b))',
+        #    '(return (+ a b))',
+        #')',
+        '(field person q null)',
+        '(method main ()',
+            '(print q)',
+        ')',
     ')'
 ]
 
