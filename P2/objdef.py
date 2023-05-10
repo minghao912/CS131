@@ -329,7 +329,7 @@ class ObjectDefinition:
 
         # Check compatible types
         if field_to_be_set.type == Type.OBJ and set_to_this[0] in [Type.OBJ, Type.NULL]:
-            if set_to_this[0] == Type.NULL:
+            if set_to_this[0] == Type.NULL: # Any object can be set to null
                 pass
             elif field_to_be_set.obj_name == set_to_this[2]:   # For objects, compare the object name
                 pass
