@@ -17,7 +17,7 @@ program = [
             '(begin',
                 '(set test_var 7)',
                 '(set test_obj (new person))',
-                '(print "yay! " (call me add test_var 8))',
+                '(print "yay! " (< 5 7))',
             ')',
         ')',
     ')'

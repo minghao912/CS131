@@ -461,13 +461,13 @@ class ObjectDefinition:
         obj_null = [Type.NULL, Type.OBJ]
         just_bool = [Type.BOOL]
 
-        if command in ["<", ">", "<=", ">="] and arg_values[0].type in int_string and arg_values[1].type in int_string:
+        if command in ["<", ">", "<=", ">="] and arg_values[0].type == arg_values[1].type and arg_values[0].type in int_string and arg_values[1].type in int_string:
             pass
-        elif command in ["==", "!="] and arg_values[0].type in int_string_bool and arg_values[1].type in int_string_bool:
+        elif command in ["==", "!="] and arg_values[0].type == arg_values[1].type and arg_values[0].type in int_string_bool and arg_values[1].type in int_string_bool:
             pass
-        elif command in ["==", "!="] and arg_values[0].type in obj_null and arg_values[1].type in obj_null:
+        elif command in ["==", "!="] and arg_values[0].type == arg_values[1].type and arg_values[0].type in obj_null and arg_values[1].type in obj_null:
             pass
-        elif command in ["&", "|"] and arg_values[0].type in just_bool and arg_values[1].type in just_bool:
+        elif command in ["&", "|"] and arg_values[0].type == arg_values[1].type and arg_values[0].type in just_bool and arg_values[1].type in just_bool:
             pass
         else:
             interpreter.error(ErrorType.TYPE_ERROR, f"Operands of type '{arg_values[0].type}' and '{arg_values[1].type}' are incompatible with operator: {command}", line_num)
