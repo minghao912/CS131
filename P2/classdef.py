@@ -49,23 +49,27 @@ class ClassDefinition:
                         interpreter.error(ErrorType.NAME_ERROR, f"Duplicate method: {body_chunk[1]}", body_chunk[0].line_num)
                     else:
                         # Parse method return type
-                        method_return_type_parsed = utils.parse_type_from_str(method_return_type, current_class_list)
-                        if method_return_type_parsed == None:
+                        method_return_type_partial: Type = utils.parse_type_from_str(method_return_type, current_class_list)
+                        if method_return_type_partial == None:
                             interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type '{method_return_type}'", body_chunk[0].line_num)
-                        else:
-                            # Parse each param's type (in format [0]: type, [1]: name)
-                            method_params_list_parsed: List[Tuple[Type, str, str]] = []
-                            for method_param in method_params_list:
-                                mp_type = utils.parse_type_from_str(method_param[0], current_class_list)
-                                if mp_type == None:
-                                    interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type '{mp_type}'", body_chunk[0].line_num)
-                                else:
-                                    method_params_list_parsed.append(
-                                        (mp_type, method_param[1], method_param[0]) if mp_type == Type.OBJ \
-                                        else  (mp_type, method_param[1], None)
-                                    )
 
-                            self.methods[method_name] = Method(method_name, method_return_type_parsed, method_params_list_parsed, method_body)
+                        method_return_type_parsed: Tuple[Type, str | None] = \
+                            (method_return_type_partial, method_return_type) if method_return_type_partial == Type.OBJ \
+                            else (method_return_type_partial, None)
+
+                        # Parse each param's type (in format [0]: type, [1]: name)
+                        method_params_list_parsed: List[Tuple[Type, str, str]] = []
+                        for method_param in method_params_list:
+                            mp_type = utils.parse_type_from_str(method_param[0], current_class_list)
+                            if mp_type == None:
+                                interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type '{mp_type}'", body_chunk[0].line_num)
+                            else:
+                                method_params_list_parsed.append(
+                                    (mp_type, method_param[1], method_param[0]) if mp_type == Type.OBJ \
+                                    else  (mp_type, method_param[1], None)
+                                )
+
+                        self.methods[method_name] = Method(method_name, method_return_type_parsed, method_params_list_parsed, method_body)
                 
     def instantiate_self(self) -> ObjectDefinition:
         obj = ObjectDefinition(self.trace_output)
