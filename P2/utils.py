@@ -43,7 +43,7 @@ def parse_type_from_str(type_name: str, current_class_list: List[str]) -> Type:
         case _:
             # Check if it's a class
             if type_name in current_class_list:
-                return Type.OBJ_NAME
+                return Type.OBJ
             else:
                 return None
 
@@ -72,6 +72,6 @@ def parse_value_given_type(type_name: str, val: str, current_class_list: List[st
         case _:
             # Check if it's a class
             if type_name in current_class_list:
-                return (Type.OBJ_NAME, type_name)
+                return (Type.OBJ, type_name)
             else:
                 return (None, None)

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from intbase import ErrorType, InterpreterBase
 from helperclasses import Field, Method, Type
 import utils as utils
@@ -311,22 +311,36 @@ class ObjectDefinition:
             if statement_return.return_field is None:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Cannot set variable to result of void function", line_num)
             else:
-                set_to_this = (statement_return.return_field.type, statement_return.return_field.value)
+                set_to_this = (statement_return.return_field.type, statement_return.return_field.value, statement_return.return_field.obj_name)
         # Get the constant/literal or variable
         else:
             set_to_this = utils.parse_type_value(new_val)
 
+        field_to_be_set: Field = None
         # First try to find the variable in the method params (shadowing)
         if var_name in method_params:
-            method_params[var_name].type = set_to_this[0]
-            method_params[var_name].value = set_to_this[1]
+            field_to_be_set = method_params[var_name]
         # If not there, try finding it in the class fields
         elif var_name in self.fields:
-            self.fields[var_name].type = set_to_this[0]
-            self.fields[var_name].value = set_to_this[1]
+            field_to_be_set = self.fields[var_name]
         # If nowhere, return an error
         else:
             interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}", line_num)
+
+        # Check compatible types
+        if field_to_be_set.type == Type.OBJ and set_to_this[0] == Type.OBJ:
+            if field_to_be_set.obj_name == set_to_this[2]:   # For objects, compare the object name
+                pass
+            else:
+                interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type for variable '{var_name}': Expected object of type '{field_to_be_set.obj_name}' but got '{set_to_this[2]}' instead", line_num)
+        elif field_to_be_set.type == set_to_this[0]:    # For everything else, compare type
+            pass
+        else:
+            interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type for variable '{var_name}': Expected {field_to_be_set.type} but got {set_to_this[0]} instead", line_num)
+
+        # Set values
+        field_to_be_set.type = set_to_this[0]
+        field_to_be_set.value = set_to_this[1]
 
     def __executor_while(
         self,
@@ -373,7 +387,7 @@ class ObjectDefinition:
         other_class_obj = other_class.instantiate_self()
 
         # Return object as field
-        return Field("temp", Type.OBJ, other_class_obj)
+        return Field("temp", Type.OBJ, other_class_obj, arg)
 
     def __executor_arithmetic(
         self,  
