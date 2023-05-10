@@ -328,8 +328,10 @@ class ObjectDefinition:
             interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}", line_num)
 
         # Check compatible types
-        if field_to_be_set.type == Type.OBJ and set_to_this[0] == Type.OBJ:
-            if field_to_be_set.obj_name == set_to_this[2]:   # For objects, compare the object name
+        if field_to_be_set.type == Type.OBJ and set_to_this[0] in [Type.OBJ, Type.NULL]:
+            if set_to_this[0] == Type.NULL:
+                pass
+            elif field_to_be_set.obj_name == set_to_this[2]:   # For objects, compare the object name
                 pass
             else:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type for variable '{var_name}': Expected object of type '{field_to_be_set.obj_name}' but got '{set_to_this[2]}' instead", line_num)

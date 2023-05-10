@@ -17,6 +17,7 @@ program = [
             '(begin',
                 '(set test_var 7)',
                 '(set test_obj (new person))',
+                '(set test_obj null)',
                 '(print "yay! " test_var)',
             ')',
         ')',
