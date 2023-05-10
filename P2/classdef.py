@@ -54,13 +54,16 @@ class ClassDefinition:
                             interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type '{method_return_type}'", body_chunk[0].line_num)
                         else:
                             # Parse each param's type (in format [0]: type, [1]: name)
-                            method_params_list_parsed: List[Tuple[Type, str]] = []
+                            method_params_list_parsed: List[Tuple[Type, str, str]] = []
                             for method_param in method_params_list:
                                 mp_type = utils.parse_type_from_str(method_param[0], current_class_list)
                                 if mp_type == None:
                                     interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type '{mp_type}'", body_chunk[0].line_num)
                                 else:
-                                    method_params_list_parsed.append((mp_type, method_param[1]))
+                                    method_params_list_parsed.append(
+                                        (mp_type, method_param[1], method_param[0]) if mp_type == Type.OBJ \
+                                        else  (mp_type, method_param[1], None)
+                                    )
 
                             self.methods[method_name] = Method(method_name, method_return_type_parsed, method_params_list_parsed, method_body)
                 

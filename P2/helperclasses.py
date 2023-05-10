@@ -13,7 +13,7 @@ class Type(Enum):
 class Method:
     name: str
     return_type: Type
-    parameters: List[Tuple[Type, str]]
+    parameters: List[Tuple[Type, str, str]]     # param type, param name, param obj name (optional)
     body: any
 
 @dataclass

@@ -40,8 +40,21 @@ class ObjectDefinition:
         if len(required_parameters) != len(passed_paramters):
             interpreter.error(ErrorType.TYPE_ERROR, f"Invlalid number of parameters for method: {methodName}")
 
-        for i in range(len(required_parameters)):
-            matched_parameters[required_parameters[i]] = Field(required_parameters[i], passed_paramters[i].type, passed_paramters[i].value)
+        # Match parameters, doing type check
+        def _param_matcher(req_param: Tuple[Type, str, str], pass_param: Field) -> Field:
+            # Type check
+            try:
+                utils.check_compatible_types(Field(req_param[1], req_param[0], None, req_param[2]), pass_param)
+            except Exception as e:
+                interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type for parameter '{req_param[1]}' of method '{methodName}': {str(e)}")
+            
+            # Final field creation
+            return Field(req_param[1], pass_param.type, pass_param.value, pass_param.obj_name)
+
+        matched_parameters = {
+            req_param[1]: _param_matcher(req_param, pass_param)
+            for (req_param, pass_param) in zip(required_parameters, passed_paramters)
+        }
 
         # See if begin statement or just one
         methodBody = self.methods[methodName].body
@@ -314,7 +327,8 @@ class ObjectDefinition:
                 set_to_this = (statement_return.return_field.type, statement_return.return_field.value, statement_return.return_field.obj_name)
         # Get the constant/literal or variable
         else:
-            set_to_this = utils.parse_type_value(new_val)
+            lit_val = utils.parse_type_value(new_val)
+            set_to_this = (lit_val[0], lit_val[1], None)
 
         field_to_be_set: Field = None
         # First try to find the variable in the method params (shadowing)
@@ -328,17 +342,10 @@ class ObjectDefinition:
             interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}", line_num)
 
         # Check compatible types
-        if field_to_be_set.type == Type.OBJ and set_to_this[0] in [Type.OBJ, Type.NULL]:
-            if set_to_this[0] == Type.NULL: # Any object can be set to null
-                pass
-            elif field_to_be_set.obj_name == set_to_this[2]:   # For objects, compare the object name
-                pass
-            else:
-                interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type for variable '{var_name}': Expected object of type '{field_to_be_set.obj_name}' but got '{set_to_this[2]}' instead", line_num)
-        elif field_to_be_set.type == set_to_this[0]:    # For everything else, compare type
-            pass
-        else:
-            interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type for variable '{var_name}': Expected {field_to_be_set.type} but got {set_to_this[0]} instead", line_num)
+        try:
+            utils.check_compatible_types(field_to_be_set, Field("temp", set_to_this[0], set_to_this[1], set_to_this[2]))
+        except Exception as e:
+            interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type for variable '{var_name}': {str(e)}", line_num)
 
         # Set values
         field_to_be_set.type = set_to_this[0]

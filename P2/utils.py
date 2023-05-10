@@ -1,4 +1,4 @@
-from helperclasses import Type
+from helperclasses import Field, Type
 from intbase import InterpreterBase
 
 from typing import List, Tuple
@@ -75,3 +75,17 @@ def parse_value_given_type(type_name: str, val: str, current_class_list: List[st
                 return (Type.OBJ, type_name)
             else:
                 return (None, None)
+
+def check_compatible_types(field1: Field, field2: Field) -> bool:
+    # Check compatible types
+    if field1.type == Type.OBJ and field2.type in [Type.OBJ, Type.NULL]:
+        if field2.type == Type.NULL: # Any object can be set to null
+            return True
+        elif field1.obj_name == field2.obj_name:   # For objects, compare the object name
+            return True
+        else:
+            raise Exception(f"Expected object of type '{field1.obj_name}' but got '{field2.obj_name}' instead")
+    elif field1.type == field2.type:    # For everything else, compare type
+        return True
+    else:
+        raise Exception(f"Expected {field1.type} but got {field2.type} instead")
