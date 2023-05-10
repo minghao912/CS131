@@ -74,6 +74,8 @@ class ClassDefinition:
     def instantiate_self(self) -> ObjectDefinition:
         obj = ObjectDefinition(self.trace_output)
 
+        obj.set_obj_name(self.name)
+
         # Add fields and methods
         for field in self.fields.values():
             obj.add_field(field)

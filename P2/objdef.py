@@ -14,8 +14,12 @@ class ObjectDefinition:
     def __init__(self, trace_output: bool):
         self.methods: Dict[str, Method] = dict()
         self.fields: Dict[str, Field] = dict()
+        self.obj_name = None
 
         self.trace_output = trace_output
+
+    def set_obj_name(self, obj_name):
+        self.obj_name = obj_name
 
     def add_method(self, method: Method):
         self.methods[method.name] = method
@@ -365,6 +369,20 @@ class ObjectDefinition:
             lit_val = utils.parse_type_value(new_val)
             set_to_this = (lit_val[0], lit_val[1], None)
 
+            # set_to_this refers to a variable
+            if set_to_this[0] is None:
+                # First try to find the variable in the method params (shadowing)
+                if new_val in method_params:
+                    var_field = method_params[new_val]
+                    set_to_this = (var_field.type, var_field.value, var_field.obj_name)
+                # If not there, try finding it in the class fields
+                elif new_val in self.fields:
+                    var_field = self.fields[new_val]
+                    set_to_this = (var_field.type, var_field.value, var_field.obj_name)
+                # If nowhere, return an error
+                else:
+                    interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {new_val}", line_num)
+
         field_to_be_set: Field = None
         # First try to find the variable in the method params (shadowing)
         if var_name in method_params:
@@ -578,8 +596,11 @@ class ObjectDefinition:
         method_params: Dict[str, Field], 
         interpreter: InterpreterBase
     ) -> Field:
+        # Reference to self
+        if var_name == InterpreterBase.ME_DEF:
+            return Field("temp", Type.OBJ, self, self.obj_name)
         # A variable lookup
-        if var_name in method_params:
+        elif var_name in method_params:
             return method_params[var_name]
         # If not there, try finding it in the class fields
         elif var_name in self.fields:
