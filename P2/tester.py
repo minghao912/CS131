@@ -5,12 +5,11 @@ program = [
         '(field person hey null)',
     ')',
     '(class main',
-        #'(method int add ((int a) (int b))',
-        #    '(return (+ a b))',
-        #')',
-        '(field person q null)',
-        '(method main ()',
-            '(print q)',
+        '(method int add ((int a) (int b))',
+            '(return (+ a b))',
+        ')',
+        '(method void main ()',
+            '(print "yay!")',
         ')',
     ')'
 ]

@@ -1,12 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import List
-
-@dataclass
-class Method:
-    name: str
-    parameters: List[str]
-    body: any
+from typing import List, Tuple
 
 class Type(Enum):
     INT = 0
@@ -15,6 +9,13 @@ class Type(Enum):
     NULL = 3
     OBJ = 4
     OBJ_NAME = 5
+
+@dataclass
+class Method:
+    name: str
+    return_type: Type
+    parameters: List[Tuple[Type, str]]
+    body: any
 
 @dataclass
 class Field:

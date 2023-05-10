@@ -30,6 +30,23 @@ def parse_type_value(val: str) -> Tuple[Type | None, int | bool | None | str]:
     finally:
         return final_val
 
+def parse_type_from_str(type_name: str, current_class_list: List[str]) -> Type:
+    match type_name:
+        case InterpreterBase.INT_DEF:
+            return Type.INT
+        case InterpreterBase.BOOL_DEF:
+            return Type.BOOL
+        case InterpreterBase.STRING_DEF:
+            return Type.STRING
+        case InterpreterBase.VOID_DEF:
+            return Type.NULL
+        case _:
+            # Check if it's a class
+            if type_name in current_class_list:
+                return Type.OBJ_NAME
+            else:
+                return None
+
 def parse_value_given_type(type_name: str, val: str, current_class_list: List[str]) -> Tuple[Type | None, int | bool | None | str]:
     match type_name:
         case InterpreterBase.INT_DEF:

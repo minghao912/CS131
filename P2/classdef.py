@@ -4,7 +4,7 @@ from helperclasses import Field, Method, Type
 from objdef import ObjectDefinition
 import utils as utils
 
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 class ClassDefinition:
     def __init__(self, chunk: List[str | List[str]], current_class_list: List[str], interpreter: InterpreterBase, trace_output: bool):
@@ -38,12 +38,31 @@ class ClassDefinition:
                             self.fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
                         else:
                             self.fields[field_name] = Field(field_name, parsed_type, parsed_value)
-                # Methods are in format [1]: name, [2]: params list, [3]: body
+                # Methods are in format [1] return_type, [2]: name, [3]: params list, [4]: body
                 case InterpreterBase.METHOD_DEF:
-                    if body_chunk[1] in self.methods:
+                    method_return_type = body_chunk[1]
+                    method_name = body_chunk[2]
+                    method_params_list = body_chunk[3]
+                    method_body = body_chunk[4]
+
+                    if method_name in self.methods:
                         interpreter.error(ErrorType.NAME_ERROR, f"Duplicate method: {body_chunk[1]}", body_chunk[0].line_num)
                     else:
-                        self.methods[body_chunk[1]] = Method(body_chunk[1], body_chunk[2], body_chunk[3])
+                        # Parse method return type
+                        method_return_type_parsed = utils.parse_type_from_str(method_return_type, current_class_list)
+                        if method_return_type_parsed == None:
+                            interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type '{method_return_type}'", body_chunk[0].line_num)
+                        else:
+                            # Parse each param's type (in format [0]: type, [1]: name)
+                            method_params_list_parsed: List[Tuple[Type, str]] = []
+                            for method_param in method_params_list:
+                                mp_type = utils.parse_type_from_str(method_param[0], current_class_list)
+                                if mp_type == None:
+                                    interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type '{mp_type}'", body_chunk[0].line_num)
+                                else:
+                                    method_params_list_parsed.append((mp_type, method_param[1]))
+
+                            self.methods[method_name] = Method(method_name, method_return_type_parsed, method_params_list_parsed, method_body)
                 
     def instantiate_self(self) -> ObjectDefinition:
         obj = ObjectDefinition(self.trace_output)
