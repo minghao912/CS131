@@ -89,3 +89,18 @@ def check_compatible_types(field1: Field, field2: Field) -> bool:
         return True
     else:
         raise Exception(f"Expected {field1.type} but got {field2.type} instead")
+
+def get_default_return_value(return_type: Type) -> int | bool | str | None:
+    match return_type:
+        case Type.INT:
+            return 0
+        case Type.BOOL:
+            return False
+        case Type.STRING:
+            return ""
+        case Type.OBJ:
+            return None
+        case Type.NULL:
+            return None
+        case _:
+            raise Exception("Not a valid return type!")

@@ -15,11 +15,15 @@ class ObjectDefinition:
         self.methods: Dict[str, Method] = dict()
         self.fields: Dict[str, Field] = dict()
         self.obj_name = None
+        self.__names_of_valid_classes: List[str] = []
 
         self.trace_output = trace_output
 
     def set_obj_name(self, obj_name):
         self.obj_name = obj_name
+
+    def set_names_of_valid_classes(self, names_of_valid_classes: List[str]):
+        self.__names_of_valid_classes = names_of_valid_classes
 
     def add_method(self, method: Method):
         self.methods[method.name] = method
@@ -64,7 +68,17 @@ class ObjectDefinition:
         methodBody = self.methods[methodName].body
         methodReturnType = self.methods[methodName].return_type
 
-        statement_return = self.__run_statement(matched_parameters, methodReturnType, methodBody, interpreter)
+        statement_return = self.__run_statement([matched_parameters], methodReturnType, methodBody, interpreter)
+
+        # Set default return value, if applicable
+        if statement_return.return_field is None or statement_return.return_field.value is None:
+            statement_return.return_field = Field(
+                "temp", 
+                methodReturnType[0], 
+                utils.get_default_return_value(methodReturnType[0]),
+                methodReturnType[1]
+            )
+
         return statement_return.return_field
 
     # If returned bool is True, a "return" has been issued
@@ -139,13 +153,21 @@ class ObjectDefinition:
                 notted_boolean = self.__executor_unary_not(command.line_num, parameters, statement[1], interpreter)
                 return StatementReturn(False, notted_boolean)
 
+            # In format [1] all declared vars (list), [2...] substatements
+            case InterpreterBase.LET_DEF:
+                declared_vars = statement[1]
+                substatements = statement[2:]
+
+                return_initiated, return_field = self.__executor_let(command.line_num, parameters, method_return_type, declared_vars, substatements, interpreter)
+                return StatementReturn(return_initiated, return_field)
+
             case _:
                 interpreter.error(ErrorType.SYNTAX_ERROR, f"Unknown statement/expression: {command}", command.line_num)
 
     def __executor_begin(
         self, 
         line_num: int,
-        method_params: Dict[str, Field], 
+        method_params: List[Dict[str, Field]], 
         method_return_type: Tuple[Type, str | None],
         substatements: List[str], 
         interpreter: InterpreterBase
@@ -161,7 +183,7 @@ class ObjectDefinition:
     def __executor_call(
         self,  
         line_num: int,
-        method_params: Dict[str, Field], 
+        method_params: List[Dict[str, Field]], 
         target_obj: str, 
         method_name: str, 
         method_args: List[str], 
@@ -201,7 +223,7 @@ class ObjectDefinition:
     def __executor_if(
         self,
         line_num: int, 
-        method_params: Dict[str, Field], 
+        method_params: List[Dict[str, Field]], 
         method_return_type: Tuple[Type, str | None],
         args: List[str], 
         interpreter: InterpreterBase
@@ -236,7 +258,7 @@ class ObjectDefinition:
     def __executor_input(
         self,
         line_num: int, 
-        method_params: Dict[str, Field], 
+        method_params: List[Dict[str, Field]], 
         command: str,
         var: str, 
         interpreter: InterpreterBase
@@ -258,7 +280,7 @@ class ObjectDefinition:
     def __executor_print(
         self,  
         line_num: int,
-        method_params: Dict[str, Field],
+        method_params: List[Dict[str, Field]],
         method_return_type: Tuple[Type, str | None], 
         stuff_to_print: List[str], 
         interpreter: InterpreterBase
@@ -297,7 +319,7 @@ class ObjectDefinition:
     def __executor_return(
         self,  
         line_num: int,
-        method_params: Dict[str, Field], 
+        method_params: List[Dict[str, Field]], 
         method_return_type: Tuple[Type, str | None],
         expr: str, 
         interpreter: InterpreterBase
@@ -350,7 +372,7 @@ class ObjectDefinition:
     def __executor_set(
         self,  
         line_num: int,
-        method_params: Dict[str, Field], 
+        method_params: List[Dict[str, Field]], 
         method_return_type: Tuple[Type, str | None],
         var_name: str, 
         new_val: any, 
@@ -372,8 +394,7 @@ class ObjectDefinition:
             # set_to_this refers to a variable
             if set_to_this[0] is None:
                 # First try to find the variable in the method params (shadowing)
-                if new_val in method_params:
-                    var_field = method_params[new_val]
+                if (var_field := self.__get_var_from_params_list(var_name, method_params)):
                     set_to_this = (var_field.type, var_field.value, var_field.obj_name)
                 # If not there, try finding it in the class fields
                 elif new_val in self.fields:
@@ -385,8 +406,8 @@ class ObjectDefinition:
 
         field_to_be_set: Field = None
         # First try to find the variable in the method params (shadowing)
-        if var_name in method_params:
-            field_to_be_set = method_params[var_name]
+        if (found_var := self.__get_var_from_params_list(var_name, method_params)):
+            field_to_be_set = found_var
         # If not there, try finding it in the class fields
         elif var_name in self.fields:
             field_to_be_set = self.fields[var_name]
@@ -407,7 +428,7 @@ class ObjectDefinition:
     def __executor_while(
         self,
         line_num: int, 
-        method_params: Dict[str, Field], 
+        method_params: List[Dict[str, Field]], 
         method_return_type: Tuple[Type, str | None],
         predicate: str | List[str], 
         true_clause: List[str], 
@@ -437,7 +458,7 @@ class ObjectDefinition:
     def __executor_new(
         self,
         line_num: int, 
-        method_params: Dict[str, Field], 
+        method_params: List[Dict[str, Field]], 
         arg: str, 
         interpreter: any # (Interpreter, but there is a circular dependency so ignore for now)
     ) -> Field:
@@ -455,7 +476,7 @@ class ObjectDefinition:
     def __executor_arithmetic(
         self,  
         line_num: int,
-        method_params: Dict[str, Field], 
+        method_params: List[Dict[str, Field]], 
         command: str, 
         args: List[Field],
         interpreter: InterpreterBase
@@ -496,7 +517,7 @@ class ObjectDefinition:
     def __executor_compare(
         self,  
         line_num: int,
-        method_params: Dict[str, Field], 
+        method_params: List[Dict[str, Field]], 
         command: str, 
         args: List[Field],
         interpreter: InterpreterBase
@@ -577,7 +598,7 @@ class ObjectDefinition:
     def __executor_unary_not(
         self,  
         line_num: int,
-        method_params: Dict[str, Field], 
+        method_params: List[Dict[str, Field]], 
         arg: str, 
         interpreter: InterpreterBase
     ) -> Field:
@@ -589,22 +610,66 @@ class ObjectDefinition:
         else:
             return Field("temp", Type.BOOL, not arg_value.value)
 
+    def __executor_let(
+        self, 
+        line_num: int,
+        method_params: List[Dict[str, Field]], 
+        method_return_type: Tuple[Type, str | None],
+        declared_vars: List[str],
+        substatements: List[str], 
+        interpreter: InterpreterBase
+    ) -> Tuple[bool, Field]:
+        # Get all declared variables
+        declared_fields: Dict[Field] = dict()
+        for dec_var in declared_vars:
+            field_type = dec_var[0]
+            field_name = dec_var[1]
+            init_value = dec_var[2]
+
+            if field_name in self.fields or field_name in declared_fields:
+                interpreter.error(ErrorType.NAME_ERROR, f"Duplicate field: {field_name}", line_num)
+            else:
+                parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__names_of_valid_classes)
+
+                # parsed_type will be none if an error occurred during value parsing (only possible error is incompatible type)
+                if parsed_type == None:
+                    interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type '{field_type}' with value '{init_value}'", line_num)
+                elif parsed_type == Type.OBJ:
+                    declared_fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
+                else:
+                    declared_fields[field_name] = Field(field_name, parsed_type, parsed_value)
+
+        # Add declared fields to FRONT of method params for precedence
+        new_method_params = [declared_fields] + method_params
+
+        # Everything else is just like running a begin statement
+        return self.__executor_begin(line_num, new_method_params, method_return_type, substatements, interpreter)
+
     def __get_var_value(
         self,  
         line_num: int,
         var_name: str, 
-        method_params: Dict[str, Field], 
+        method_params: List[Dict[str, Field]], 
         interpreter: InterpreterBase
     ) -> Field:
         # Reference to self
         if var_name == InterpreterBase.ME_DEF:
             return Field("temp", Type.OBJ, self, self.obj_name)
         # A variable lookup
-        elif var_name in method_params:
-            return method_params[var_name]
+        elif (found_var := self.__get_var_from_params_list(var_name, method_params)) is not None:
+            return found_var
         # If not there, try finding it in the class fields
         elif var_name in self.fields:
             return self.fields[var_name]
         # If nowhere, return an error
         else:
             interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}", line_num)
+
+    # Looks through params list for variable
+    # Each let block adds their own params dic to the front of the list
+    # Use the first instance of the defined variable
+    def __get_var_from_params_list(self, var_name: str, method_params: List[Dict[str, Field]]) -> Field | None:
+        for dic in method_params:
+            if str(var_name) in dic:
+                return dic[str(var_name)]
+        return None

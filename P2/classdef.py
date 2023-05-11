@@ -12,6 +12,7 @@ class ClassDefinition:
         self.name = chunk[1]
         self.methods: Dict[str, Method] = dict()
         self.fields: Dict[str, Field] = dict()
+        self.__current_class_list: List[str] = current_class_list
 
         self.trace_output = trace_output
 
@@ -75,6 +76,7 @@ class ClassDefinition:
         obj = ObjectDefinition(self.trace_output)
 
         obj.set_obj_name(self.name)
+        obj.set_names_of_valid_classes(self.__current_class_list)
 
         # Add fields and methods
         for field in self.fields.values():
