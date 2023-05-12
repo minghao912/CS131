@@ -5,14 +5,15 @@ from objdef import ObjectDefinition
 import utils as utils
 
 import copy
-from typing import Dict, List, Tuple
+from typing import Dict, List, Self, Tuple
 
 class ClassDefinition:
-    def __init__(self, chunk: List[str | List[str]], current_class_list: List[str], interpreter: InterpreterBase, trace_output: bool):
+    def __init__(self, chunk: List[str | List[str]], superclass: Self | None, current_class_list: List[str], interpreter: InterpreterBase, trace_output: bool):
         # Instance variables
         self.name = chunk[1]
         self.methods: Dict[str, Method] = dict()
         self.fields: Dict[str, Field] = dict()
+        self.superclass: ClassDefinition | None = superclass
         self.__current_class_list: List[str] = current_class_list
 
         self.trace_output = trace_output
@@ -78,6 +79,7 @@ class ClassDefinition:
 
         obj.set_obj_name(self.name)
         obj.set_names_of_valid_classes(self.__current_class_list)
+        obj.set_superclass((self.superclass).instantiate_self() if self.superclass is not None else None)
 
         # Add fields and methods
         for field in self.fields.values():

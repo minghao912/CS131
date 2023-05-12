@@ -27,13 +27,22 @@ class Interpreter(InterpreterBase):
             if not top_level_chunk[0] == InterpreterBase.CLASS_DEF:
                 continue
 
-            # Create that class and add it to storage
+            # Parse definition
             new_class_name = top_level_chunk[1]
+            superclass: ClassDefinition = None
+            if len(top_level_chunk) >= 4 and top_level_chunk[2] == InterpreterBase.INHERITS_DEF:
+                superclass_name: str = top_level_chunk[3]
+                if (superclass_def := self.get_class(superclass_name)) is None:
+                    self.error(ErrorType.TYPE_ERROR, f"Invalid class '{superclass_name}' in '{top_level_chunk}'", new_class_name.line_num)
+                else:
+                    superclass = superclass_def
+
+            # Create that class and add it to storage
             if new_class_name in self.__classes:
                 self.error(ErrorType.NAME_ERROR, f"Duplicate class name {new_class_name}", new_class_name.line_num)
             else:
                 current_class_list = list(self.__classes.keys()) + [str(new_class_name)]
-                self.__classes[new_class_name] = ClassDefinition(top_level_chunk, current_class_list, self, self.trace_output)
+                self.__classes[new_class_name] = ClassDefinition(top_level_chunk, superclass, current_class_list, self, self.trace_output)
 
         # Find main class
         if "main" not in self.__classes:

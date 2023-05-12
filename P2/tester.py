@@ -1,11 +1,7 @@
 from interpreterv2 import Interpreter
 
 program = [
-    '(class dog',
-        '(field int age 5)',
-    ')',
     '(class person',
-        '(field person hey null)',
         '(field string name "")',
         '(method void set_name ((string new_name))',
             '(set name new_name)',
@@ -17,22 +13,30 @@ program = [
             '(return me)',
         ')',
     ')',
+    '(class student inherits person',
+        '(field string major "")',
+        '(method void set_major ((string new_major))',
+            '(set major new_major)',
+        ')',
+        '(method void print_major ()',
+            '(print major)',
+        ')',
+    ')',
     '(class main',
         '(field int test_var 5)',
-        '(field person test_obj null)',
-        '(field person jeff null)',
-        '(method int add ((int a) (int b))',
-            '(return (+ a b))',
-        ')',
-        '(method int fake_method ()',
-            '(return)',
-        ')',
+        '(field person test_person null)',
+        '(field student test_student null)',
+
         '(method void main ()',
-            '(let ((int local_x 10) (string local_str "string"))',
-                '(print local_x " " local_str " " test_var)',
-                '(let ((int local_x 12))',
-                    '(print local_x " " local_str " " test_var)',
-                ')',
+            '(begin',
+                '(set test_person (new person))',
+                '(set test_student (new student))',
+
+                '(call test_person set_name "Barbara")',
+                '(call test_student set_major "Marine Biology")',
+
+                '(call test_person print_name)',
+                '(call test_student print_major)',
             ')',
         ')',
     ')'
@@ -94,4 +98,4 @@ program_ll = [
 ]
 
 interpreter = Interpreter()
-interpreter.run(program_ll)
+interpreter.run(program)
