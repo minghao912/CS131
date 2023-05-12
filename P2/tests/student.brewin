@@ -1,0 +1,41 @@
+(class person
+        (field string name "")
+        (method void set_name ((string new_name))
+            (set name new_name)
+        )
+        (method string get_name ()
+            (return name)
+        )
+        (method person get_self ()
+            (return me)
+        )
+    )
+    (class student inherits person
+        (field string major "")
+        (method void set_major ((string new_major))
+            (set major new_major)
+        )
+        (method string get_major ()
+            (return major)
+        )
+    )
+    (class main
+        (field int test_var 5)
+        (field person test_person null)
+        (field student test_student null)
+
+        (method void main ()
+            (begin
+                (set test_person (new person))
+                (set test_student (new student))
+
+                (call test_person set_name "Barbara")
+
+                (call test_student set_name "Yuki")
+                (call test_student set_major "Marine Biology")
+
+                (print (call test_person get_name))
+                (print (call test_student get_name) " majors in " (call test_student get_major))
+            )
+        )
+    )
