@@ -1,9 +1,9 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from intbase import ErrorType, InterpreterBase
 from helperclasses import Field, Method, Type
 import utils as utils
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Self, Tuple
 
 @dataclass
 class StatementReturn:
@@ -14,13 +14,17 @@ class ObjectDefinition:
     def __init__(self, trace_output: bool):
         self.methods: Dict[str, Method] = dict()
         self.fields: Dict[str, Field] = dict()
-        self.obj_name = None
+        self.obj_name: str = None
+        self.superclass: ObjectDefinition | None = None
         self.__names_of_valid_classes: List[str] = []
 
         self.trace_output = trace_output
 
-    def set_obj_name(self, obj_name):
+    def set_obj_name(self, obj_name: str):
         self.obj_name = obj_name
+
+    def set_superclass(self, superclass: Self):
+        self.superclass = superclass
 
     def set_names_of_valid_classes(self, names_of_valid_classes: List[str]):
         self.__names_of_valid_classes = names_of_valid_classes
@@ -211,13 +215,15 @@ class ObjectDefinition:
             
             # Call a method in another object
             # Check to see if reference is valid
-            other_obj_field = self.__get_var_from_params_list(target_obj, method_params)
-            if other_obj_field is None:
-                interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {target_obj}", line_num)
-            elif other_obj_field.type is Type.NULL:
-                interpreter.error(ErrorType.FAULT_ERROR, f"Reference is null: {target_obj}", line_num)
+            if (other_obj_field := self.__get_var_from_params_list(target_obj, method_params)) is not None:
+                if other_obj_field == Type.NULL:
+                    interpreter.error(ErrorType.FAULT_ERROR, f"Reference is null: {target_obj}", line_num)
+                else:
+                    other_obj = other_obj_field.value
+            elif target_obj in self.fields:
+                other_obj = self.fields[target_obj].value
             else:
-                other_obj = other_obj_field.value
+                interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {target_obj}", line_num)
 
         return other_obj.call_method(method_name, arg_values, interpreter)
 
