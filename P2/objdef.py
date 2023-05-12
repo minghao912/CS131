@@ -12,7 +12,7 @@ class StatementReturn:
 
 class ObjectDefinition:
     def __init__(self, trace_output: bool):
-        self.methods: Dict[str, Method] = dict()
+        self.methods: Dict[str, List[Method]] = dict()
         self.fields: Dict[str, Field] = dict()
         self.obj_name: str = None
         self.superclass: ObjectDefinition | None = None
@@ -29,8 +29,8 @@ class ObjectDefinition:
     def set_names_of_valid_classes(self, names_of_valid_classes: List[str]):
         self.__names_of_valid_classes = names_of_valid_classes
 
-    def add_method(self, method: Method):
-        self.methods[method.name] = method
+    def add_method(self, method_list: List[Method]):
+        self.methods[method_list[0].name] = method_list
 
     def add_field(self, field: Field):
         self.fields[field.name] = field
@@ -42,7 +42,7 @@ class ObjectDefinition:
         interpreter: InterpreterBase
     ) -> Field:
         method_to_call: Method = None
-        if (found_method := self.get_method_from_polymorphic_methods(methodName)) is not None:
+        if (found_method := self.get_method_from_polymorphic_methods(methodName, parameters)) is not None:
             method_to_call = found_method
 
         # Match parameters
@@ -95,14 +95,15 @@ class ObjectDefinition:
             else:
                 return self.superclass.get_var_from_polymorphic_fields(var_name)
 
-    def get_method_from_polymorphic_methods(self, method_name: str) -> Method | None:
+    def get_method_from_polymorphic_methods(self, method_name: str, params: List[Field]) -> Method | None:
+        # Check method of this name exists
         if method_name in self.methods:
-            return self.methods[method_name]
+            return utils.get_correct_method(self.methods, method_name, list(map(lambda f: (f.type, f.obj_name), params)))
         else:
             if self.superclass is None:
                 return None
             else:
-                return self.superclass.get_method_from_polymorphic_methods(method_name)
+                return self.superclass.get_method_from_polymorphic_methods(method_name, params)
 
     # If returned bool is True, a "return" has been issued
     def __run_statement(

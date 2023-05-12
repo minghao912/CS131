@@ -14,6 +14,13 @@
      (print "second")
     )
   )
+
+  (method void say_something ((string msg))
+    (begin
+      (call super say_something)
+      (print name " also says " msg)
+    )
+  )
 )
 
 (class main
@@ -24,6 +31,7 @@
       (call s set_name "julin")   # calls person's set_name method
       (call s set_id 010123456)   # calls student's set_id method
       (call s say_something)	    # calls student's say_something method
+      (call s say_something "wow")  # calls student's overloaded method
     )
   )
 )

@@ -105,5 +105,24 @@ def get_default_return_value(return_type: Type) -> int | bool | str | None:
         case _:
             raise Exception("Not a valid return type!")
 
-def get_method(methodName: str, parameters: List[Field], methodsList: Dict[str, Method]) -> Method | None:
-    pass
+def get_method_type_list(method_params: List[Tuple[Type, str, str]]) -> List[Tuple[Type, str]]:
+    return map(
+        lambda tuple: (tuple[0], tuple[2]),
+        method_params
+    )
+
+def get_correct_method(methods_list: List[Method], method_name: str, params: List[Tuple[Type, str]]) -> Method | None:
+    # Check for the correct method signature
+    for m in methods_list[method_name]:
+        if len(m.parameters) != len(params):
+            continue
+        
+        for (mp_type, pp_type) in zip(get_method_type_list(m.parameters), params):
+            try:
+                check_compatible_types(Field("temp", mp_type[0], None, mp_type[1]), Field("temp", pp_type[0], None, pp_type[1]))
+            except Exception as e:
+                break
+        else:
+            return m
+    else:
+        return None
