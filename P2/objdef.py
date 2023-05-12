@@ -98,12 +98,14 @@ class ObjectDefinition:
     def get_method_from_polymorphic_methods(self, method_name: str, params: List[Field]) -> Method | None:
         # Check method of this name exists
         if method_name in self.methods:
-            return utils.get_correct_method(self.methods, method_name, list(map(lambda f: (f.type, f.obj_name), params)))
+            found_method = utils.get_correct_method(self.methods, method_name, list(map(lambda f: (f.type, f.obj_name), params)))
+            if found_method is not None:
+                return found_method
+
+        if self.superclass is None:
+            return None
         else:
-            if self.superclass is None:
-                return None
-            else:
-                return self.superclass.get_method_from_polymorphic_methods(method_name, params)
+            return self.superclass.get_method_from_polymorphic_methods(method_name, params)
 
     # If returned bool is True, a "return" has been issued
     def __run_statement(
@@ -238,7 +240,7 @@ class ObjectDefinition:
             # Call a method in another object
             # Check to see if reference is valid
             if (other_obj_field := self.__get_var_from_params_list(target_obj, method_params)) is not None:
-                if other_obj_field == Type.NULL:
+                if other_obj_field.type == Type.NULL:
                     interpreter.error(ErrorType.FAULT_ERROR, f"Reference is null: {target_obj}", line_num)
                 else:
                     other_obj = other_obj_field.value
