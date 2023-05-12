@@ -1,7 +1,7 @@
 from interpreterv2 import Interpreter
 
 program = []
-with open('tests/ll.brewin') as f:
+with open('tests/inheritance_example.brewin') as f:
     program = f.read().splitlines()
     f.close()
 

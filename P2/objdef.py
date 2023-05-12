@@ -231,6 +231,8 @@ class ObjectDefinition:
             # Call a method in my own object
             if target_obj == InterpreterBase.ME_DEF:
                 return self.call_method(method_name, arg_values, interpreter)
+            if target_obj == InterpreterBase.SUPER_DEF:
+                return self.superclass.call_method(method_name, arg_values, interpreter)
             
             # Call a method in another object
             # Check to see if reference is valid
