@@ -41,12 +41,13 @@ class ObjectDefinition:
         parameters: List[Field], 
         interpreter: InterpreterBase
     ) -> Field:
-        if not methodName in self.methods:
-            interpreter.error(ErrorType.NAME_ERROR, f"Unknown method: {methodName}")
+        method_to_call: Method = None
+        if (found_method := self.get_method_from_polymorphic_methods(methodName)) is not None:
+            method_to_call = found_method
 
         # Match parameters
         matched_parameters: Dict[str, any] = dict()
-        required_parameters = self.methods[methodName].parameters
+        required_parameters = method_to_call.parameters
         passed_paramters = parameters
 
         if len(required_parameters) != len(passed_paramters):
@@ -69,8 +70,8 @@ class ObjectDefinition:
         }
 
         # See if begin statement or just one
-        methodBody = self.methods[methodName].body
-        methodReturnType = self.methods[methodName].return_type
+        methodBody = method_to_call.body
+        methodReturnType = method_to_call.return_type
 
         statement_return = self.__run_statement([matched_parameters], methodReturnType, methodBody, interpreter)
 
@@ -84,6 +85,24 @@ class ObjectDefinition:
             )
 
         return statement_return.return_field
+
+    def get_var_from_polymorphic_fields(self, var_name: str) -> Field | None:
+        if var_name in self.fields:
+            return self.fields[var_name]
+        else:
+            if self.superclass is None:
+                return None
+            else:
+                return self.superclass.get_var_from_polymorphic_fields(var_name)
+
+    def get_method_from_polymorphic_methods(self, method_name: str) -> Method | None:
+        if method_name in self.methods:
+            return self.methods[method_name]
+        else:
+            if self.superclass is None:
+                return None
+            else:
+                return self.superclass.get_method_from_polymorphic_methods(method_name)
 
     # If returned bool is True, a "return" has been issued
     def __run_statement(
@@ -220,8 +239,8 @@ class ObjectDefinition:
                     interpreter.error(ErrorType.FAULT_ERROR, f"Reference is null: {target_obj}", line_num)
                 else:
                     other_obj = other_obj_field.value
-            elif target_obj in self.fields:
-                other_obj = self.fields[target_obj].value
+            elif (other_obj_field := self.get_var_from_polymorphic_fields(target_obj)) is not None:
+                other_obj = other_obj_field.value
             else:
                 interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {target_obj}", line_num)
 
@@ -270,19 +289,27 @@ class ObjectDefinition:
         var: str, 
         interpreter: InterpreterBase
     ) -> Field:
-        # Check variable to read into exists
-        if var not in self.fields:
-            interpreter.error(ErrorType.NAME_ERROR, f"Unkonwn variable: {var}", line_num)
+        # Check to see if reference is valid
+        read_into_var: Field = None
+        if (read_into_field := self.__get_var_from_params_list(var, method_params)) is not None:
+            if read_into_field.type not in [Type.INT, Type.STRING]:
+                interpreter.error(ErrorType.FAULT_ERROR, f"Cannot read into variable '{var}' of type {read_into_field.type}", line_num)
+            else:
+                read_into_var = read_into_field
+        elif (read_into_field := self.get_var_from_polymorphic_fields(var)) is not None:
+            read_into_var = read_into_field
+        else:
+            interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var}", line_num)
 
         # Read input
         user_input = interpreter.get_input()
 
         # Set to var
         read_in_int = (command == "inputi")
-        self.fields[var].type = Type.INT if read_in_int else Type.STRING
-        self.fields[var].value = int(user_input) if read_in_int else user_input
+        read_into_var.type = Type.INT if read_in_int else Type.STRING
+        read_into_field.value = int(user_input) if read_in_int else user_input
 
-        return Field("temp", self.fields[var].type, self.fields[var].value)
+        return Field("temp", read_into_var.type, read_into_var.value)
 
     def __executor_print(
         self,  
@@ -404,8 +431,7 @@ class ObjectDefinition:
                 if (var_field := self.__get_var_from_params_list(new_val, method_params)) is not None:
                     set_to_this = (var_field.type, var_field.value, var_field.obj_name)
                 # If not there, try finding it in the class fields
-                elif new_val in self.fields:
-                    var_field = self.fields[new_val]
+                elif (var_field := self.get_var_from_polymorphic_fields(new_val)) is not None:
                     set_to_this = (var_field.type, var_field.value, var_field.obj_name)
                 # If nowhere, return an error
                 else:
@@ -413,11 +439,11 @@ class ObjectDefinition:
 
         field_to_be_set: Field = None
         # First try to find the variable in the method params (shadowing)
-        if (found_var := self.__get_var_from_params_list(var_name, method_params)):
+        if (found_var := self.__get_var_from_params_list(var_name, method_params)) is not None:
             field_to_be_set = found_var
         # If not there, try finding it in the class fields
-        elif var_name in self.fields:
-            field_to_be_set = self.fields[var_name]
+        elif (found_var := self.get_var_from_polymorphic_fields(var_name)) is not None:
+            field_to_be_set = found_var
         # If nowhere, return an error
         else:
             interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}", line_num)
@@ -628,7 +654,7 @@ class ObjectDefinition:
             field_name = dec_var[1]
             init_value = dec_var[2]
 
-            if field_name in self.fields or field_name in declared_fields:
+            if field_name in declared_fields or self.get_var_from_polymorphic_fields(field_name) is not None:
                 interpreter.error(ErrorType.NAME_ERROR, f"Duplicate field: {field_name}", line_num)
             else:
                 parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__names_of_valid_classes)
@@ -661,8 +687,8 @@ class ObjectDefinition:
         elif (found_var := self.__get_var_from_params_list(var_name, method_params)) is not None:
             return found_var
         # If not there, try finding it in the class fields
-        elif var_name in self.fields:
-            return self.fields[var_name]
+        elif (found_var := self.get_var_from_polymorphic_fields(var_name)) is not None:
+            return found_var
         # If nowhere, return an error
         else:
             interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}", line_num)

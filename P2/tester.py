@@ -6,8 +6,8 @@ program = [
         '(method void set_name ((string new_name))',
             '(set name new_name)',
         ')',
-        '(method void print_name ()',
-            '(print name)',
+        '(method string get_name ()',
+            '(return name)',
         ')',
         '(method person get_self ()',
             '(return me)',
@@ -18,8 +18,8 @@ program = [
         '(method void set_major ((string new_major))',
             '(set major new_major)',
         ')',
-        '(method void print_major ()',
-            '(print major)',
+        '(method string get_major ()',
+            '(return major)',
         ')',
     ')',
     '(class main',
@@ -33,10 +33,12 @@ program = [
                 '(set test_student (new student))',
 
                 '(call test_person set_name "Barbara")',
+
+                '(call test_student set_name "Yuki")',
                 '(call test_student set_major "Marine Biology")',
 
-                '(call test_person print_name)',
-                '(call test_student print_major)',
+                '(print (call test_person get_name))',
+                '(print (call test_student get_name) " majors in " (call test_student get_major))',
             ')',
         ')',
     ')'
