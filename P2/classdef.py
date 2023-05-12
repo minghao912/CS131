@@ -84,7 +84,7 @@ class ClassDefinition:
     def instantiate_self(self) -> ObjectDefinition:
         obj = ObjectDefinition(self.trace_output)
 
-        obj.set_obj_name(self.name)
+        obj.set_class_name(self.name)
         obj.set_names_of_valid_classes(self.__current_class_list)
         obj.set_superclass((self.superclass).instantiate_self() if self.superclass is not None else None)
 

@@ -14,14 +14,14 @@ class ObjectDefinition:
     def __init__(self, trace_output: bool):
         self.methods: Dict[str, List[Method]] = dict()
         self.fields: Dict[str, Field] = dict()
-        self.obj_name: str = None
+        self.class_name: str = None
         self.superclass: ObjectDefinition | None = None
         self.__names_of_valid_classes: List[str] = []
 
         self.trace_output = trace_output
 
-    def set_obj_name(self, obj_name: str):
-        self.obj_name = obj_name
+    def set_class_name(self, class_name: str):
+        self.class_name = class_name
 
     def set_superclass(self, superclass: Self):
         self.superclass = superclass
@@ -106,6 +106,9 @@ class ObjectDefinition:
             return None
         else:
             return self.superclass.get_method_from_polymorphic_methods(method_name, params)
+
+    def inherits(self, other_class: str) -> bool:
+        pass
 
     # If returned bool is True, a "return" has been issued
     def __run_statement(
@@ -687,7 +690,7 @@ class ObjectDefinition:
     ) -> Field:
         # Reference to self
         if var_name == InterpreterBase.ME_DEF:
-            return Field("temp", Type.OBJ, self, self.obj_name)
+            return Field("temp", Type.OBJ, self, self.class_name)
         # A variable lookup
         elif (found_var := self.__get_var_from_params_list(var_name, method_params)) is not None:
             return found_var
