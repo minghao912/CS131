@@ -554,12 +554,7 @@ class ObjectDefinition:
             arg_values[1].type in obj_null: 
 
             # Comparisons between object and null are allowed, so need not check for same type
-            try:
-                utils.check_compatible_types(arg_values[0], arg_values[1])
-            except Exception as e:
-                interpreter.error(ErrorType.TYPE_ERROR, f"Operands of type '{arg_values[0].obj_name}' and '{arg_values[1].obj_name}' are incompatible with operator: {command}", line_num)
-            
-            pass    # Type check OK
+            pass    
         elif command in ["&", "|"] and \
             arg_values[0].type == arg_values[1].type and \
             arg_values[0].type in just_bool and \

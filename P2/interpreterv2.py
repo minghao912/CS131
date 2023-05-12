@@ -30,14 +30,14 @@ class Interpreter(InterpreterBase):
             # Create that class and add it to storage
             new_class_name = top_level_chunk[1]
             if new_class_name in self.__classes:
-                self.error(ErrorType.TYPE_ERROR, f"Duplicate class name {new_class_name}", new_class_name.line_num)
+                self.error(ErrorType.NAME_ERROR, f"Duplicate class name {new_class_name}", new_class_name.line_num)
             else:
                 current_class_list = list(self.__classes.keys()) + [str(new_class_name)]
                 self.__classes[new_class_name] = ClassDefinition(top_level_chunk, current_class_list, self, self.trace_output)
 
         # Find main class
         if "main" not in self.__classes:
-            self.error(ErrorType.TYPE_ERROR, "No main class found")
+            self.error(ErrorType.NAME_ERROR, "No main class found")
 
         # Instantiate and run main class
         main_class = self.__classes['main'].instantiate_self()

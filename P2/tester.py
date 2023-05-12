@@ -38,7 +38,7 @@ program = [
     ')'
 ]
 
-program2 = [
+program_ll = [
     '(class LinkedList',
         '(field int value 0)',
         '(field LinkedList next null)',
@@ -94,4 +94,4 @@ program2 = [
 ]
 
 interpreter = Interpreter()
-interpreter.run(program2)
+interpreter.run(program_ll)
