@@ -4,7 +4,7 @@ from classdef import ClassDefinition
 
 from typing import Dict, List
 
-# Brewin v1 interpreter
+# Brewin v2 interpreter
 class Interpreter(InterpreterBase):
     def __init__(self, console_output=True, inp=None, trace_output=False):
         super().__init__(console_output, inp)   # call InterpreterBase’s constructor

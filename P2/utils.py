@@ -1,7 +1,7 @@
-from helperclasses import Field, Type
+from helperclasses import Field, Method, Type
 from intbase import InterpreterBase
 
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 def parse_type_value(val: str) -> Tuple[Type | None, int | bool | None | str]:
     final_val = (None, None)
@@ -104,3 +104,6 @@ def get_default_return_value(return_type: Type) -> int | bool | str | None:
             return None
         case _:
             raise Exception("Not a valid return type!")
+
+def get_method(methodName: str, parameters: List[Field], methodsList: Dict[str, Method]) -> Method | None:
+    pass

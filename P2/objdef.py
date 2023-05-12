@@ -134,7 +134,7 @@ class ObjectDefinition:
                 return StatementReturn(False, None)
 
             case InterpreterBase.WHILE_DEF:
-                function_return = self.__executor_while(command.line_num, parameters, statement[1], statement[2], interpreter)
+                function_return = self.__executor_while(command.line_num, parameters, method_return_type, statement[1], statement[2], interpreter)
                 return StatementReturn(function_return[0], function_return[1])
 
             case InterpreterBase.NEW_DEF:
@@ -211,12 +211,13 @@ class ObjectDefinition:
             
             # Call a method in another object
             # Check to see if reference is valid
-            if target_obj not in self.fields:
+            other_obj_field = self.__get_var_from_params_list(target_obj, method_params)
+            if other_obj_field is None:
                 interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {target_obj}", line_num)
-            if self.fields[target_obj].type is Type.NULL:
+            elif other_obj_field.type is Type.NULL:
                 interpreter.error(ErrorType.FAULT_ERROR, f"Reference is null: {target_obj}", line_num)
-
-            other_obj = self.fields[target_obj].value
+            else:
+                other_obj = other_obj_field.value
 
         return other_obj.call_method(method_name, arg_values, interpreter)
 
@@ -394,7 +395,7 @@ class ObjectDefinition:
             # set_to_this refers to a variable
             if set_to_this[0] is None:
                 # First try to find the variable in the method params (shadowing)
-                if (var_field := self.__get_var_from_params_list(var_name, method_params)):
+                if (var_field := self.__get_var_from_params_list(new_val, method_params)) is not None:
                     set_to_this = (var_field.type, var_field.value, var_field.obj_name)
                 # If not there, try finding it in the class fields
                 elif new_val in self.fields:

@@ -4,6 +4,7 @@ from helperclasses import Field, Method, Type
 from objdef import ObjectDefinition
 import utils as utils
 
+import copy
 from typing import Dict, List, Tuple
 
 class ClassDefinition:
@@ -80,8 +81,8 @@ class ClassDefinition:
 
         # Add fields and methods
         for field in self.fields.values():
-            obj.add_field(field)
+            obj.add_field(copy.copy(field))
         for method in self.methods.values():
-            obj.add_method(method)
+            obj.add_method(copy.copy(method))
 
         return obj
