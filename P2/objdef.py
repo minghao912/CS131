@@ -41,9 +41,11 @@ class ObjectDefinition:
         parameters: List[Field], 
         interpreter: InterpreterBase
     ) -> Field:
+        obj_to_call: Self = None
         method_to_call: Method = None
-        if (found_method := self.get_method_from_polymorphic_methods(methodName, parameters)) is not None:
-            method_to_call = found_method
+        if (found := self.get_method_from_polymorphic_methods(methodName, parameters)) is not None:
+            obj_to_call = found[0]
+            method_to_call = found[1]
 
         # Match parameters
         matched_parameters: Dict[str, any] = dict()
@@ -73,7 +75,7 @@ class ObjectDefinition:
         methodBody = method_to_call.body
         methodReturnType = method_to_call.return_type
 
-        statement_return = self.__run_statement([matched_parameters], methodReturnType, methodBody, interpreter)
+        statement_return = obj_to_call.__run_statement([matched_parameters], methodReturnType, methodBody, interpreter)
 
         # Set default return value, if applicable
         if statement_return.return_field is None or statement_return.return_field.value is None:
@@ -90,25 +92,33 @@ class ObjectDefinition:
         if var_name in self.fields:
             return self.fields[var_name]
         else:
+            return None
+            """ FIELDS ARE PRIVATE NOT PROTECTED
             if self.superclass is None:
                 return None
             else:
-                return self.superclass.get_var_from_polymorphic_fields(var_name)
+                return self.superclass.get_var_from_polymorphic_fields(var_name) """
 
-    def get_method_from_polymorphic_methods(self, method_name: str, params: List[Field]) -> Method | None:
+    def get_method_from_polymorphic_methods(self, method_name: str, params: List[Field]) -> Tuple[Self, Method | None]:
         # Check method of this name exists
         if method_name in self.methods:
             found_method = utils.get_correct_method(self.methods, method_name, list(map(lambda f: (f.type, f.obj_name), params)))
             if found_method is not None:
-                return found_method
+                return (self, found_method)
 
         if self.superclass is None:
             return None
         else:
             return self.superclass.get_method_from_polymorphic_methods(method_name, params)
 
-    def inherits(self, other_class: str) -> bool:
-        pass
+    def inherits(self, other_class_name: str) -> bool:
+        if self.superclass is None:
+            return False
+        else:
+            if self.superclass.class_name == other_class_name:
+                return True
+            else:
+                return self.superclass.inherits(other_class_name)
 
     # If returned bool is True, a "return" has been issued
     def __run_statement(

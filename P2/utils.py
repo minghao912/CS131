@@ -83,6 +83,8 @@ def check_compatible_types(field1: Field, field2: Field) -> bool:
             return True
         elif field1.obj_name == field2.obj_name:   # For objects, compare the object name
             return True
+        elif field2.value.inherits(field1.obj_name):   # Allow polymorphism
+            return True
         else:
             raise Exception(f"Expected object of type '{field1.obj_name}' but got '{field2.obj_name}' instead")
     elif field1.type == field2.type:    # For everything else, compare type

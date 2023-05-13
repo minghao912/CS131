@@ -1,0 +1,6 @@
+(class main
+    (field int q 5)
+    (method main ()
+        (print q)
+    )
+)
