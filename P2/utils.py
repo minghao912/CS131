@@ -113,7 +113,7 @@ def get_method_type_list(method_params: List[Tuple[Type, str, str]]) -> List[Tup
         method_params
     )
 
-def get_correct_method(methods_list: List[Method], method_name: str, params: List[Tuple[Type, str]]) -> Method | None:
+def get_correct_method(methods_list: List[Method], method_name: str, params: List[Tuple[Type, str, any]]) -> Method | None:
     # Check for the correct method signature
     for m in methods_list[method_name]:
         if len(m.parameters) != len(params):
@@ -121,7 +121,7 @@ def get_correct_method(methods_list: List[Method], method_name: str, params: Lis
         
         for (mp_type, pp_type) in zip(get_method_type_list(m.parameters), params):
             try:
-                check_compatible_types(Field("temp", mp_type[0], None, mp_type[1]), Field("temp", pp_type[0], None, pp_type[1]))
+                check_compatible_types(Field("temp", mp_type[0], None, mp_type[1]), Field("temp", pp_type[0], pp_type[2], pp_type[1]))
             except Exception as e:
                 break
         else:

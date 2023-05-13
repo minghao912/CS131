@@ -1,19 +1,25 @@
-(class person 
-  (field string name "jane")
-  (method void say_something () (print name " says hi"))
+(class person
+    (field int age 5)
 )
 
 (class student inherits person
-  (method void say_something () (print "Can I have an extension?"))
+    (field string major "CS")
 )
 
 (class main
-  (field person p null)
-
-  (method void main () 
-    (begin 
-      (set p (new person))
-      (call p say_something)
+    (field student pf null)
+    (method void foo ((person p1) (person p2)) 
+        (if (== p1 p2)   
+            (print "same object")
+            (print "not same object")
+        )
     )
-  )
+
+
+    (method void main ()
+        (begin
+            (set pf (new student))
+            (call me foo pf pf)
+        )
+    )
 )

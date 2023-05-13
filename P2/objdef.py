@@ -104,7 +104,7 @@ class ObjectDefinition:
     def get_method_from_polymorphic_methods(self, method_name: str, params: List[Field]) -> Tuple[Self, Method | None]:
         # Check method of this name exists
         if method_name in self.methods:
-            found_method = utils.get_correct_method(self.methods, method_name, list(map(lambda f: (f.type, f.obj_name), params)))
+            found_method = utils.get_correct_method(self.methods, method_name, list(map(lambda f: (f.type, f.obj_name, f.value), params)))
             if found_method is not None:
                 return (self, found_method)
 
@@ -676,7 +676,7 @@ class ObjectDefinition:
             init_value = dec_var[2]
 
             if field_name in declared_fields or self.get_var_from_polymorphic_fields(field_name) is not None:
-                interpreter.error(ErrorType.TYPE_ERROR, f"Duplicate field: {field_name}", line_num)
+                interpreter.error(ErrorType.NAME_ERROR, f"Duplicate field: {field_name}", line_num)
             else:
                 parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__names_of_valid_classes)
 
