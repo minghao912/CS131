@@ -37,6 +37,8 @@ class ClassDefinition:
                         # parsed_type will be none if an error occurred during value parsing (only possible error is incompatible type)
                         if parsed_type == None:
                             interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type '{field_type}' with value '{init_value}'", body_chunk[0].line_num)
+                        elif parsed_type == Type.NULL:
+                            interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", body_chunk[0].line_num)
                         elif parsed_type == Type.OBJ:
                             self.fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
                         else:

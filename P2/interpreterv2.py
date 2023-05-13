@@ -39,7 +39,7 @@ class Interpreter(InterpreterBase):
 
             # Create that class and add it to storage
             if new_class_name in self.__classes:
-                self.error(ErrorType.NAME_ERROR, f"Duplicate class name {new_class_name}", new_class_name.line_num)
+                self.error(ErrorType.TYPE_ERROR, f"Duplicate class name {new_class_name}", new_class_name.line_num)
             else:
                 current_class_list = list(self.__classes.keys()) + [str(new_class_name)]
                 self.__classes[new_class_name] = ClassDefinition(top_level_chunk, superclass, current_class_list, self, self.trace_output)

@@ -74,7 +74,7 @@ def parse_value_given_type(type_name: str, val: str, current_class_list: List[st
             if type_name in current_class_list:
                 return (Type.OBJ, type_name)
             else:
-                return (None, None)
+                return (Type.NULL, None)    # Signals undeclared class
 
 def check_compatible_types(field1: Field, field2: Field) -> bool:
     # Check compatible types

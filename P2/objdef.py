@@ -46,6 +46,8 @@ class ObjectDefinition:
         if (found := self.get_method_from_polymorphic_methods(methodName, parameters)) is not None:
             obj_to_call = found[0]
             method_to_call = found[1]
+        else:
+            interpreter.error(ErrorType.NAME_ERROR, f"Matching method '{methodName}' not found")
 
         # Match parameters
         matched_parameters: Dict[str, any] = dict()
