@@ -66,9 +66,9 @@ class ClassDefinition:
                         def __param_already_exists(param_name: str, params_list: List[Tuple[Type, str, str]]) -> bool:
                             for p in params_list:
                                 if p[1] == param_name:
-                                    return False
+                                    return True
                             else:
-                                return True
+                                return False
 
                         if __param_already_exists(method_param[1], method_params_list_parsed):
                             interpreter.error(ErrorType.NAME_ERROR, f"Duplicate formal parameter '{method_param[1]}'", body_chunk[0].line_num)
