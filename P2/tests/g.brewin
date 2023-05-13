@@ -1,0 +1,19 @@
+(class person 
+  (field string name "jane")
+  (method void say_something () (print name " says hi"))
+)
+
+(class student inherits person
+  (method void say_something () (print "Can I have an extension?"))
+)
+
+(class main
+  (field person p null)
+
+  (method void main () 
+    (begin 
+      (set p (new person))
+      (call p say_something)
+    )
+  )
+)

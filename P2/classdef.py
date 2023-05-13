@@ -79,7 +79,7 @@ class ClassDefinition:
                     elif utils.get_correct_method(self.methods, method_name, list(map(lambda p: (p[0], p[2]), method_params_list_parsed))) is None:
                         pass
                     else:
-                        interpreter.error(ErrorType.NAME_ERROR, f"Duplicate method: {body_chunk[1]}", body_chunk[0].line_num)
+                        interpreter.error(ErrorType.NAME_ERROR, f"Duplicate method: {method_name}", body_chunk[0].line_num)
 
                     self.methods[method_name].append(Method(method_name, method_return_type_parsed, method_params_list_parsed, method_body))
                 
