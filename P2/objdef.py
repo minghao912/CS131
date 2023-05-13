@@ -680,7 +680,7 @@ class ObjectDefinition:
                 parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__names_of_valid_classes)
 
                 # parsed_type will be none if an error occurred during value parsing (only possible error is incompatible type)
-                if parsed_type == None:
+                if parsed_type is None:
                     interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type '{field_type}' with value '{init_value}'", line_num)
                 elif parsed_type == Type.OBJ:
                     declared_fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
