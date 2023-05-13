@@ -606,8 +606,15 @@ class ObjectDefinition:
             arg_values[0].type in obj_null and \
             arg_values[1].type in obj_null: 
 
-            # Comparisons between object and null are allowed, so need not check for same type
-            pass    
+            # If either object reference is null, allowed, so need not check for same type
+            if arg_values[0].type == Type.NULL or arg_values[1].type == Type.NULL:
+                pass
+            # Else comparisons need to check for compatibility
+            else:
+                try:
+                    utils.check_compatible_types(arg_values[0], arg_values[1])
+                except Exception as e:
+                    interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type for operand '{arg_values[1].name}': {str(e)}")
         elif command in ["&", "|"] and \
             arg_values[0].type == arg_values[1].type and \
             arg_values[0].type in just_bool and \

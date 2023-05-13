@@ -6,10 +6,17 @@
     (field string major "CS")
 )
 
+(class professor inherits person
+    (field string class "CS131")
+)
+
+(class dog
+    (field string name "Fido")
+)
+
 (class main
-    (field student pf null)
-    (method void foo ((person p1) (person p2)) 
-        (if (== p1 p2)   
+    (method void foo ((professor ref1) (student ref2)) 
+        (if (== ref1 ref2)                               
             (print "same object")
             (print "not same object")
         )
@@ -17,9 +24,9 @@
 
 
     (method void main ()
-        (begin
-            (set pf (new student))
-            (call me foo pf pf)
+        (let ((student stu null))
+            (set stu (new student))
+            (call me foo (new person) stu)
         )
     )
 )
