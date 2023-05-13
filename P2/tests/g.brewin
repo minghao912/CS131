@@ -1,5 +1,8 @@
 (class person
     (field int age 5)
+    (method void talk ()
+        (print "I am age " age)
+    )
 )
 
 (class student inherits person
@@ -15,18 +18,7 @@
 )
 
 (class main
-    (method void foo ((professor ref1) (student ref2)) 
-        (if (== ref1 ref2)                               
-            (print "same object")
-            (print "not same object")
-        )
-    )
-
-
-    (method void main ()
-        (let ((student stu null))
-            (set stu (new student))
-            (call me foo (new person) stu)
-        )
-    )
+  (method void foo ((int x) (string x)) (print x))
+  (method void main () (call me foo 6 "8"))
 )
+

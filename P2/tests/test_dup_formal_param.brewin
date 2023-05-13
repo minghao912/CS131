@@ -1,18 +1,24 @@
-(class foo
- (method void f ((int x) (int y)) (print x))
+(class person
+    (field int age 5)
+    (method void talk ()
+        (print "I am age " age)
+    )
 )
-(class bar inherits foo
- (method void f ((int x) (int y)) (print x " " y))
- (method void f ((int x) (int y)) (print x))
+
+(class student inherits person
+    (field string major "CS")
+)
+
+(class professor inherits person
+    (field string class "CS131")
+)
+
+(class dog
+    (field string name "Fido")
 )
 
 (class main
- (field bar b null)
- (method void main ()
-   (begin
-     (set b (new bar))
-     (call b f 10)  	# calls version of f defined in foo
-     (call b f 10 20)   # calls version of f defined in bar
-   )
- )
+  (method void foo ((int x) (string x)) (print x))
+  (method void main () (call me foo 6 "8"))
 )
+
