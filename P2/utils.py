@@ -1,7 +1,7 @@
 from helperclasses import Field, Method, Type
 from intbase import InterpreterBase
 
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 def parse_type_value(val: str) -> Tuple[Type | None, int | bool | None | str]:
     final_val = (None, None)
@@ -76,14 +76,26 @@ def parse_value_given_type(type_name: str, val: str, current_class_list: List[st
             else:
                 return (Type.NULL, None)    # Signals undeclared class
 
-def check_compatible_types(field1: Field, field2: Field) -> bool:
+def check_compatible_types(field1: Field, field2: Field, interpreter: InterpreterBase) -> bool:
     # Check compatible types
     if field1.type == Type.OBJ and field2.type in [Type.OBJ, Type.NULL]:
         if field2.type == Type.NULL: # Any object can be set to null
             return True
         elif field1.obj_name == field2.obj_name:   # For objects, compare the object name
             return True
-        elif field2.value.inherits(field1.obj_name):   # Allow polymorphism
+        # Allow polymorphism
+        elif field2.value is None:
+            # We are getting a none value, so need to create a dummy object to ask if it inherits
+            dummy_class = interpreter.get_class(field2.obj_name)
+            if dummy_class is not None:
+                dummy_obj = dummy_class.instantiate_self()
+                if dummy_obj.inherits(field1.obj_name):
+                    return True
+                else:
+                    raise Exception(f"Expected object of type '{field1.obj_name}' but got '{field2.obj_name}' instead")
+            else:
+                raise Exception(f"Type '{field2.obj_name}'' does not exist")
+        elif field2.value.inherits(field1.obj_name):   
             return True
         else:
             raise Exception(f"Expected object of type '{field1.obj_name}' but got '{field2.obj_name}' instead")
@@ -113,7 +125,7 @@ def get_method_type_list(method_params: List[Tuple[Type, str, str]]) -> List[Tup
         method_params
     )
 
-def get_correct_method(methods_list: List[Method], method_name: str, params: List[Tuple[Type, str, any]]) -> Method | None:
+def get_correct_method(methods_list: List[Method], method_name: str, params: List[Tuple[Type, str, any]], interpreter: InterpreterBase) -> Method | None:
     # Check for the correct method signature
     for m in methods_list[method_name]:
         if len(m.parameters) != len(params):
@@ -121,7 +133,7 @@ def get_correct_method(methods_list: List[Method], method_name: str, params: Lis
         
         for (mp_type, pp_type) in zip(get_method_type_list(m.parameters), params):
             try:
-                check_compatible_types(Field("temp", mp_type[0], None, mp_type[1]), Field("temp", pp_type[0], pp_type[2], pp_type[1]))
+                check_compatible_types(Field("temp", mp_type[0], None, mp_type[1]), Field("temp", pp_type[0], pp_type[2], pp_type[1]), interpreter)
             except Exception as e:
                 break
         else:

@@ -87,7 +87,7 @@ class ClassDefinition:
                     if method_name not in self.methods:
                         self.methods[method_name] = list()
                     # Check if overload
-                    elif utils.get_correct_method(self.methods, method_name, list(map(lambda p: (p[0], p[2]), method_params_list_parsed))) is None:
+                    elif utils.get_correct_method(self.methods, method_name, list(map(lambda p: (p[0], p[2]), method_params_list_parsed)), interpreter) is None:
                         pass
                     else:
                         interpreter.error(ErrorType.NAME_ERROR, f"Duplicate method: {method_name}", body_chunk[0].line_num)

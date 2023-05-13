@@ -43,7 +43,7 @@ class ObjectDefinition:
     ) -> Field:
         obj_to_call: Self = None
         method_to_call: Method = None
-        if (found := self.get_method_from_polymorphic_methods(methodName, parameters)) is not None:
+        if (found := self.get_method_from_polymorphic_methods(methodName, parameters, interpreter)) is not None:
             obj_to_call = found[0]
             method_to_call = found[1]
         else:
@@ -61,7 +61,7 @@ class ObjectDefinition:
         def _param_matcher(req_param: Tuple[Type, str, str], pass_param: Field) -> Field:
             # Type check
             try:
-                utils.check_compatible_types(Field(req_param[1], req_param[0], None, req_param[2]), pass_param)
+                utils.check_compatible_types(Field(req_param[1], req_param[0], None, req_param[2]), pass_param, interpreter)
             except Exception as e:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type for parameter '{req_param[1]}' of method '{methodName}': {str(e)}")
             
@@ -101,17 +101,17 @@ class ObjectDefinition:
             else:
                 return self.superclass.get_var_from_polymorphic_fields(var_name) """
 
-    def get_method_from_polymorphic_methods(self, method_name: str, params: List[Field]) -> Tuple[Self, Method | None]:
+    def get_method_from_polymorphic_methods(self, method_name: str, params: List[Field], interpreter: InterpreterBase) -> Tuple[Self, Method | None]:
         # Check method of this name exists
         if method_name in self.methods:
-            found_method = utils.get_correct_method(self.methods, method_name, list(map(lambda f: (f.type, f.obj_name, f.value), params)))
+            found_method = utils.get_correct_method(self.methods, method_name, list(map(lambda f: (f.type, f.obj_name, f.value), params)), interpreter)
             if found_method is not None:
                 return (self, found_method)
 
         if self.superclass is None:
             return None
         else:
-            return self.superclass.get_method_from_polymorphic_methods(method_name, params)
+            return self.superclass.get_method_from_polymorphic_methods(method_name, params, interpreter)
 
     def inherits(self, other_class_name: str) -> bool:
         if self.superclass is None:
@@ -391,7 +391,7 @@ class ObjectDefinition:
             # Actual return statement of method
             # Type check
             try:
-                utils.check_compatible_types(Field("ret_type", method_return_type[0], None, method_return_type[1]), ret_field)
+                utils.check_compatible_types(Field("ret_type", method_return_type[0], None, method_return_type[1]), ret_field, interpreter)
             except Exception as e:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Invalid return type: {str(e)}", line_num)
 
@@ -417,7 +417,7 @@ class ObjectDefinition:
             # Actual return statement of method
             # Type check
             try:
-                utils.check_compatible_types(Field("ret_type", method_return_type[0], None, method_return_type[1]), var_value)
+                utils.check_compatible_types(Field("ret_type", method_return_type[0], None, method_return_type[1]), var_value, interpreter)
             except Exception as e:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Invalid return type: {str(e)}", line_num)
 
@@ -471,7 +471,7 @@ class ObjectDefinition:
 
         # Check compatible types
         try:
-            utils.check_compatible_types(field_to_be_set, Field("temp", set_to_this[0], set_to_this[1], set_to_this[2]))
+            utils.check_compatible_types(field_to_be_set, Field("temp", set_to_this[0], set_to_this[1], set_to_this[2]), interpreter)
         except Exception as e:
             interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type for variable '{var_name}': {str(e)}", line_num)
 
@@ -606,15 +606,19 @@ class ObjectDefinition:
             arg_values[0].type in obj_null and \
             arg_values[1].type in obj_null: 
 
-            # If either object reference is null, allowed, so need not check for same type
+            # If either object reference is a literal "null", allowed, so need not check for same type
             if arg_values[0].type == Type.NULL or arg_values[1].type == Type.NULL:
                 pass
             # Else comparisons need to check for compatibility
             else:
                 try:
-                    utils.check_compatible_types(arg_values[0], arg_values[1])
+                    utils.check_compatible_types(arg_values[0], arg_values[1], interpreter)
                 except Exception as e:
-                    interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type for operand '{arg_values[1].name}': {str(e)}")
+                    try:
+                        utils.check_compatible_types(arg_values[1], arg_values[0], interpreter)
+                    except Exception as e:
+                        # Only error if both ways are incompatible
+                        interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type for operand '{arg_values[1].name}': {str(e)}")
         elif command in ["&", "|"] and \
             arg_values[0].type == arg_values[1].type and \
             arg_values[0].type in just_bool and \
