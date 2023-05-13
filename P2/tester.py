@@ -1,7 +1,7 @@
 from interpreterv2 import Interpreter
 
 program = []
-with open('tests/overload3.brewin') as f:
+with open('tests/test_null_obj_ref.brewin') as f:
     program = f.read().splitlines()
     f.close()
 

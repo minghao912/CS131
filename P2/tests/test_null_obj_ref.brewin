@@ -1,0 +1,10 @@
+(class other_obj
+    (field int n 2)
+)
+
+(class main
+    (field other_obj obj null)
+    (method void main ()
+        (call obj foo 5)
+    ) 
+)

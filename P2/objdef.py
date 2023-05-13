@@ -255,14 +255,15 @@ class ObjectDefinition:
             # Call a method in another object
             # Check to see if reference is valid
             if (other_obj_field := self.__get_var_from_params_list(target_obj, method_params)) is not None:
-                if other_obj_field.type == Type.NULL:
-                    interpreter.error(ErrorType.FAULT_ERROR, f"Reference is null: {target_obj}", line_num)
-                else:
-                    other_obj = other_obj_field.value
+                other_obj = other_obj_field.value
             elif (other_obj_field := self.get_var_from_polymorphic_fields(target_obj)) is not None:
                 other_obj = other_obj_field.value
             else:
                 interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {target_obj}", line_num)
+
+            # Check to see if reference is null
+            if other_obj is None:
+                interpreter.error(ErrorType.FAULT_ERROR, f"Reference is null: {target_obj}", line_num)
 
         return other_obj.call_method(method_name, arg_values, interpreter)
 
