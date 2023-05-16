@@ -327,10 +327,22 @@ class ObjectDefinition:
         # Read input
         user_input = interpreter.get_input()
 
-        # Set to var
-        read_in_int = (command == "inputi")
-        read_into_var.type = Type.INT if read_in_int else Type.STRING
-        read_into_field.value = int(user_input) if read_in_int else user_input
+        # Type check
+        if read_into_var.type == Type.INT:
+            if command == "inputs":
+                interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type: Cannot read Type.STRING into Type.INT", line_num)
+            
+            try:
+                int_val = int(user_input)
+            except Exception as e:
+                interpreter.error(ErrorType.TYPE_ERROR, f"Could not convert input to Type.INT", line_num)
+
+            read_into_field.value = int_val
+        else:   # Type.STRING
+            if command == "inputi":
+                interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type: Cannot read Type.INT into Type.STRING", line_num)
+
+            read_into_field.value = user_input
 
         return Field("temp", read_into_var.type, read_into_var.value)
 
