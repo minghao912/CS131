@@ -1,0 +1,39 @@
+(class a
+    (field int x 5)
+    (method int m1 ()
+        (return x)
+    )
+)
+
+(class b inherits a
+    (field string y "string")
+    (method string m1 ()
+        (return y)
+    )
+)
+
+(class c inherits a
+    (field int x 8)
+    (method int m1 ()
+        (call super m1)
+    )
+)
+
+(class main
+    (field a c_ null)
+    (field b b_ null)
+
+    (method void main ()
+        (let ((a local1 null) (a local2 null))
+            (set local1 (new b))
+            (set local2 (new c))
+            (let ((c local3 null) (b local4 null))
+                (set local3 local2)
+                (set local4 local1)
+
+                (print (call local3 m1))
+                (print (call local4 m1))
+            )
+        )
+    )
+)

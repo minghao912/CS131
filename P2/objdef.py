@@ -478,6 +478,7 @@ class ObjectDefinition:
         # Set values
         field_to_be_set.type = set_to_this[0]
         field_to_be_set.value = set_to_this[1]
+        field_to_be_set.obj_name = set_to_this[2]
 
     def __executor_while(
         self,

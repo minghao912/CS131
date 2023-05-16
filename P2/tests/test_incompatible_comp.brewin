@@ -1,0 +1,37 @@
+(class person
+    (field int age 5)
+    (method void talk ()
+        (print "I am age " age)
+    )
+)
+
+(class student inherits person
+    (field string major "CS")
+)
+
+(class professor inherits person
+    (field string class "CS131")
+)
+
+(class dog
+    (field string name "Fido")
+)
+
+(class main
+    (field student x null)
+    (field person y null)
+
+    (method void foo ((person ref1) (dog ref2)) 
+        (if (== ref1 ref2)   
+            (print "same object")
+            (print "diff object")
+        )
+    )
+
+
+    (method void main ()
+        (begin
+            (call me foo x (new dog))
+        )
+    )
+)
