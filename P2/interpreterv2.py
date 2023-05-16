@@ -64,7 +64,7 @@ class Interpreter(InterpreterBase):
 
         # Instantiate and run main class
         main_class = self.__classes['main'].instantiate_self()
-        main_class.call_method('main', [], self)
+        main_class.call_method('main', [], [main_class], self)
 
         # DEBUG
         if self.trace_output:
