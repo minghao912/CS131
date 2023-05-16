@@ -63,7 +63,7 @@ class ObjectDefinition:
             try:
                 utils.check_compatible_types(Field(req_param[1], req_param[0], None, req_param[2]), pass_param, interpreter)
             except Exception as e:
-                interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type for parameter '{req_param[1]}' of method '{methodName}': {str(e)}")
+                interpreter.error(ErrorType.NAME_ERROR, f"Invalid type for parameter '{req_param[1]}' of method '{methodName}': {str(e)}")
             
             # Final field creation
             return Field(req_param[1], pass_param.type, pass_param.value, pass_param.obj_name)
