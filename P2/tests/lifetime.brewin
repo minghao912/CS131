@@ -1,0 +1,40 @@
+(class person
+    (field string name "")
+    
+    (method void set_name ((string new_name))
+        (set name new_name)
+    )
+
+    (method string get_name ()
+        (return name)
+    )
+
+    (method person get_self ()
+        (let ((person new_obj null))
+            (set new_obj (new person))
+            (call new_obj set_name name)
+            (return new_obj)
+        )
+    )
+)
+
+(class main
+    (method void main ()
+        (let ((person p1 null))
+            (set p1 (new person))
+            (call p1 set_name "Barbara")
+            (print (call p1 get_name))
+
+            (let ((person p2 null))
+                (set p2 (call p1 get_self))
+                (print (call p2 get_name))
+                (call p2 set_name "Janice")
+
+                (set p1 p2)
+            )
+
+            (print (call p1 get_name))
+            # (print (call p2 get_name))
+        )
+    )
+)

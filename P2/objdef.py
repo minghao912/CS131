@@ -381,6 +381,11 @@ class ObjectDefinition:
         expr: str, 
         interpreter: InterpreterBase
     ) -> Field:
+        # A void method should not return anything
+        if method_return_type is not None and method_return_type[0] == Type.NULL:
+            if expr is not None:
+                interpreter.error(ErrorType.TYPE_ERROR, "Invalid return type: void method cannot return anything", line_num)
+
         # Evaluate the expr expression, if applicable
         if isinstance(expr, list):
             statement_return = self.__run_statement(method_params, method_return_type, expr, interpreter)

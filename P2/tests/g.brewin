@@ -1,28 +1,7 @@
-(class a
-    (field int x 5)
-    (method int test ()
-        (return x)
-    )
-)
-
-(class b inherits a
-    (field string str "string")
-)
-
 (class main
-    (field a a_ null)
-    (field b b_ null)
-
-    (method void test ((b one))
-        (print (call one test))
+  (method void main ()
+    (begin
+      (return null)
     )
-
-    (method void main ()
-        (begin
-            (set a_ (new b))
-            # (set b_ a_)
-
-            (call me test a_)
-        )
-    )
+  )
 )
