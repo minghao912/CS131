@@ -706,7 +706,7 @@ class ObjectDefinition:
             field_name = dec_var[1]
             init_value = dec_var[2]
 
-            if field_name in declared_fields or self.get_var_from_polymorphic_fields(field_name) is not None:
+            if field_name in declared_fields: # or self.get_var_from_polymorphic_fields(field_name) is not None:
                 interpreter.error(ErrorType.NAME_ERROR, f"Duplicate field: {field_name}", line_num)
             else:
                 parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__names_of_valid_classes)

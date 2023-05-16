@@ -1,9 +1,15 @@
 (class main
-  (method void main () (return))
-)
-(class dog
-  (method void main () (return))
-)
-(class dog
-  (method void main () (return))
+  (field int x 7)
+
+  (method void test ()
+    (let ((int x 2))
+      (let ((int x 3))
+        (print x)
+      )
+    )
+  )
+
+  (method void main ()
+    (call me test)
+  )
 )
