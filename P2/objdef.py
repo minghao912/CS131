@@ -114,7 +114,9 @@ class ObjectDefinition:
             return self.superclass.get_method_from_polymorphic_methods(method_name, params, interpreter)
 
     def inherits(self, other_class_name: str) -> bool:
-        if self.superclass is None:
+        if self.class_name == other_class_name:
+            return True
+        elif self.superclass is None:
             return False
         else:
             if self.superclass.class_name == other_class_name:
@@ -478,7 +480,7 @@ class ObjectDefinition:
         # Set values
         field_to_be_set.type = set_to_this[0]
         field_to_be_set.value = set_to_this[1]
-        field_to_be_set.obj_name = set_to_this[2]
+        # field_to_be_set.obj_name = set_to_this[2]
 
     def __executor_while(
         self,
