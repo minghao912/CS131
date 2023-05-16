@@ -1,7 +1,7 @@
 from interpreterv2 import Interpreter
 
 program = []
-with open('tests/g.brewin') as f:
+with open('tests/test_polymorphism4.brewin') as f:
     program = f.read().splitlines()
     f.close()
 

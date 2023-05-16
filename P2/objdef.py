@@ -66,7 +66,7 @@ class ObjectDefinition:
                 interpreter.error(ErrorType.NAME_ERROR, f"Invalid type for parameter '{req_param[1]}' of method '{methodName}': {str(e)}")
             
             # Final field creation
-            return Field(req_param[1], pass_param.type, pass_param.value, pass_param.obj_name)
+            return Field(req_param[1], req_param[0], pass_param.value, req_param[2])
 
         matched_parameters = {
             req_param[1]: _param_matcher(req_param, pass_param)
