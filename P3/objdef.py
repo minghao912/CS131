@@ -208,6 +208,12 @@ class ObjectDefinition:
 
                 return_initiated, return_field = self.__executor_let(command.line_num, parameters, method_return_type, declared_vars, substatements, calling_class_list, interpreter)
                 return StatementReturn(return_initiated, return_field)
+            
+            case InterpreterBase.TRY_DEF:
+                pass
+
+            case InterpreterBase.THROW_DEF:
+                pass
 
             case _:
                 interpreter.error(ErrorType.SYNTAX_ERROR, f"Unknown statement/expression: {command}", command.line_num)
@@ -265,7 +271,10 @@ class ObjectDefinition:
                         break
                 return object_to_call.call_method(method_name, arg_values, calling_class_list, interpreter)
             if target_obj == InterpreterBase.SUPER_DEF:
-                return self.superclass.call_method(method_name, arg_values, calling_class_list, interpreter)
+                if self.superclass is None:
+                    interpreter.error(ErrorType.TYPE_ERROR, f"Super class does not exist on class {self.class_name}", line_num)
+                else:
+                    return self.superclass.call_method(method_name, arg_values, calling_class_list, interpreter)
             
             # Call a method in another object
             # Check to see if reference is valid
