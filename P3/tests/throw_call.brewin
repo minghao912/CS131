@@ -1,0 +1,12 @@
+(class main
+    (method void thrower ()
+        (throw "eek!")
+    )
+    (method void main ()
+        (begin
+            (print "hi!")
+            (call me thrower)
+            (print "i am not supposed to be here")
+        )
+    )
+)

@@ -156,8 +156,8 @@ class ObjectDefinition:
                 method_name = statement[2]
                 method_args = statement[3:]
 
-                function_return = self.__executor_call(command.line_num, parameters, target_obj, method_name, method_args, calling_class_list, interpreter)
-                return StatementReturn(False, function_return)
+                return_initiated, function_return = self.__executor_call(command.line_num, parameters, target_obj, method_name, method_args, calling_class_list, interpreter)
+                return StatementReturn(return_initiated, function_return)
 
             case InterpreterBase.IF_DEF:
                 function_return = self.__executor_if(command.line_num, parameters, method_return_type, statement[1:], calling_class_list, interpreter)
@@ -212,8 +212,12 @@ class ObjectDefinition:
             case InterpreterBase.TRY_DEF:
                 pass
 
+            # In format [1] thing to throw
             case InterpreterBase.THROW_DEF:
-                pass
+                exception_msg = statement[1]
+
+                thrown_exception_field = self.__executor_throw(command.line_num, parameters, method_return_type, exception_msg, calling_class_list, interpreter)
+                return StatementReturn(True, thrown_exception_field)
 
             case _:
                 interpreter.error(ErrorType.SYNTAX_ERROR, f"Unknown statement/expression: {command}", command.line_num)
@@ -244,7 +248,16 @@ class ObjectDefinition:
         method_args: List[str], 
         calling_class_list: List[Self],
         interpreter: InterpreterBase
-    ) -> Field:
+    ) -> Tuple[bool, Field]:
+        # Helper to create modified return value needed to throw exceptions
+        def __construct_return(call_return_field: Field):
+            if call_return_field is None:
+                return (False, call_return_field)
+            elif call_return_field.type == Type.EXCEPTION:
+                return (True, call_return_field)
+            else:
+                return (False, call_return_field)
+            
         # Evaluate anything in args
         arg_values = list()
         for arg in method_args:
@@ -269,12 +282,12 @@ class ObjectDefinition:
                     if o.inherits(self.class_name):
                         object_to_call = o
                         break
-                return object_to_call.call_method(method_name, arg_values, calling_class_list, interpreter)
+                return __construct_return(object_to_call.call_method(method_name, arg_values, calling_class_list, interpreter))
             if target_obj == InterpreterBase.SUPER_DEF:
                 if self.superclass is None:
                     interpreter.error(ErrorType.TYPE_ERROR, f"Super class does not exist on class {self.class_name}", line_num)
                 else:
-                    return self.superclass.call_method(method_name, arg_values, calling_class_list, interpreter)
+                    return __construct_return(self.superclass.call_method(method_name, arg_values, calling_class_list, interpreter))
             
             # Call a method in another object
             # Check to see if reference is valid
@@ -289,7 +302,8 @@ class ObjectDefinition:
             if other_obj is None:
                 interpreter.error(ErrorType.FAULT_ERROR, f"Reference is null: {target_obj}", line_num)
 
-        return other_obj.call_method(method_name, arg_values, calling_class_list, interpreter)
+        # Actual function call
+        return __construct_return(other_obj.call_method(method_name, arg_values, calling_class_list, interpreter))
 
     def __executor_if(
         self,
@@ -765,6 +779,37 @@ class ObjectDefinition:
 
         # Everything else is just like running a begin statement
         return self.__executor_begin(line_num, new_method_params, method_return_type, substatements, calling_class_list, interpreter)
+
+    def __executor_throw(
+        self,
+        line_num: int, 
+        method_params: List[Dict[str, Field]], 
+        method_return_type: Tuple[Type, str | None], 
+        exception_msg: str, 
+        calling_class_list: List[Self],
+        interpreter: InterpreterBase
+    ) -> Field:
+        # Evaluate expression
+        if isinstance(exception_msg, list):
+            statement_return = self.__run_statement(method_params, method_return_type, exception_msg, calling_class_list, interpreter)
+            if statement_return.return_field.type != Type.STRING:
+                interpreter.error(ErrorType.TYPE_ERROR, f"Cannot throw object of type '{statement_return.return_field.type}', expected Type.STRING")
+
+            return Field("temp", Type.EXCEPTION, statement_return.return_field.value, None)
+        # Evaluate constant/literal or variable lookup
+        else:
+            raw_type, raw_thing = utils.parse_type_value(exception_msg)
+            if raw_type is not None:
+                if raw_type != Type.STRING:
+                    interpreter.error(ErrorType.TYPE_ERROR, f"Cannot throw object of type '{statement_return.return_field.type}', expected Type.STRING")
+
+                return Field("temp", Type.EXCEPTION, raw_thing, None)
+            else:
+                found_field = self.__get_var_value(line_num, exception_msg, method_params, calling_class_list, interpreter)
+                if found_field.type != Type.STRING:
+                    interpreter.error(ErrorType.TYPE_ERROR, f"Cannot throw object of type '{statement_return.return_field.type}', expected Type.STRING")
+                
+                return Field("temp", Type.EXCEPTION, found_field.value, None)
 
     def __get_var_value(
         self,  

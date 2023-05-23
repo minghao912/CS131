@@ -8,6 +8,7 @@ class Type(Enum):
     BOOL = 2
     NULL = 3
     OBJ = 4
+    EXCEPTION = 5
 
 @dataclass
 class Method:

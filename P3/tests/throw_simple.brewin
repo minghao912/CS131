@@ -1,0 +1,9 @@
+(class main
+    (method void main ()
+        (begin
+            (print "hi!")
+            (throw "eek!")
+            (print "i am not supposed to be here")
+        )
+    )
+)
