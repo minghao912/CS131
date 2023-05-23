@@ -39,7 +39,7 @@ class ObjectDefinition:
         self, 
         methodName: str, 
         parameters: List[Field], 
-        calling_class: List[Self],
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> Field:
         obj_to_call: Self = None
@@ -79,9 +79,9 @@ class ObjectDefinition:
         methodReturnType = method_to_call.return_type
 
         # Add self to calling stack if not already there
-        if calling_class[-1] is not self:
-            calling_class.append(self)
-        statement_return = obj_to_call.__run_statement([matched_parameters], methodReturnType, methodBody, calling_class, interpreter)
+        if calling_class_list[-1] is not self:
+            calling_class_list.append(self)
+        statement_return = obj_to_call.__run_statement([matched_parameters], methodReturnType, methodBody, calling_class_list, interpreter)
 
         # Set default return value, if applicable
         if statement_return.return_field is None or statement_return.return_field.value is None:
@@ -134,7 +134,7 @@ class ObjectDefinition:
         parameters: Dict[str, Field], 
         method_return_type: Tuple[Type, str | None],
         statement: List[str], 
-        calling_class: List[Self],
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> StatementReturn:
 
@@ -148,7 +148,7 @@ class ObjectDefinition:
         match command:
             case InterpreterBase.BEGIN_DEF:
                 substatements = statement[1:]
-                return_initiated, return_field = self.__executor_begin(command.line_num, parameters, method_return_type, substatements, calling_class, interpreter)
+                return_initiated, return_field = self.__executor_begin(command.line_num, parameters, method_return_type, substatements, calling_class_list, interpreter)
                 return StatementReturn(return_initiated, return_field)
 
             case InterpreterBase.CALL_DEF:
@@ -156,11 +156,11 @@ class ObjectDefinition:
                 method_name = statement[2]
                 method_args = statement[3:]
 
-                function_return = self.__executor_call(command.line_num, parameters, target_obj, method_name, method_args, calling_class, interpreter)
+                function_return = self.__executor_call(command.line_num, parameters, target_obj, method_name, method_args, calling_class_list, interpreter)
                 return StatementReturn(False, function_return)
 
             case InterpreterBase.IF_DEF:
-                function_return = self.__executor_if(command.line_num, parameters, method_return_type, statement[1:], calling_class, interpreter)
+                function_return = self.__executor_if(command.line_num, parameters, method_return_type, statement[1:], calling_class_list, interpreter)
                 return StatementReturn(function_return[0], function_return[1])
 
             case InterpreterBase.INPUT_INT_DEF | InterpreterBase.INPUT_STRING_DEF:
@@ -169,20 +169,20 @@ class ObjectDefinition:
 
             case InterpreterBase.PRINT_DEF:
                 stuff_to_print = statement[1:]
-                self.__executor_print(command.line_num, parameters, method_return_type, stuff_to_print, calling_class, interpreter)
+                self.__executor_print(command.line_num, parameters, method_return_type, stuff_to_print, calling_class_list, interpreter)
                 return StatementReturn(False, None)
 
             case InterpreterBase.RETURN_DEF:
                 if len(statement) < 2:
                     return StatementReturn(True, None)
-                return StatementReturn(True, self.__executor_return(command.line_num, parameters, method_return_type, statement[1], calling_class, interpreter))
+                return StatementReturn(True, self.__executor_return(command.line_num, parameters, method_return_type, statement[1], calling_class_list, interpreter))
 
             case InterpreterBase.SET_DEF:
-                self.__executor_set(command.line_num, parameters, method_return_type, statement[1], statement[2], calling_class, interpreter)
+                self.__executor_set(command.line_num, parameters, method_return_type, statement[1], statement[2], calling_class_list, interpreter)
                 return StatementReturn(False, None)
 
             case InterpreterBase.WHILE_DEF:
-                function_return = self.__executor_while(command.line_num, parameters, method_return_type, statement[1], statement[2], calling_class, interpreter)
+                function_return = self.__executor_while(command.line_num, parameters, method_return_type, statement[1], statement[2], calling_class_list, interpreter)
                 return StatementReturn(function_return[0], function_return[1])
 
             case InterpreterBase.NEW_DEF:
@@ -190,15 +190,15 @@ class ObjectDefinition:
                 return StatementReturn(False, new_object_def)
 
             case "+" | "-" | "*" | "/" | "%":
-                arithmetic_result = self.__executor_arithmetic(command.line_num, parameters, command, statement[1:], calling_class, interpreter)
+                arithmetic_result = self.__executor_arithmetic(command.line_num, parameters, command, statement[1:], calling_class_list, interpreter)
                 return StatementReturn(False, arithmetic_result)
 
             case "<" | ">" | "<=" | ">=" | "!=" | "==" | "&" | "|":
-                comparison_result = self.__executor_compare(command.line_num, parameters, command, statement[1:], calling_class, interpreter)
+                comparison_result = self.__executor_compare(command.line_num, parameters, command, statement[1:], calling_class_list, interpreter)
                 return StatementReturn(False, comparison_result)
 
             case "!":
-                notted_boolean = self.__executor_unary_not(command.line_num, parameters, statement[1], calling_class, interpreter)
+                notted_boolean = self.__executor_unary_not(command.line_num, parameters, statement[1], calling_class_list, interpreter)
                 return StatementReturn(False, notted_boolean)
 
             # In format [1] all declared vars (list), [2...] substatements
@@ -206,7 +206,7 @@ class ObjectDefinition:
                 declared_vars = statement[1]
                 substatements = statement[2:]
 
-                return_initiated, return_field = self.__executor_let(command.line_num, parameters, method_return_type, declared_vars, substatements, calling_class, interpreter)
+                return_initiated, return_field = self.__executor_let(command.line_num, parameters, method_return_type, declared_vars, substatements, calling_class_list, interpreter)
                 return StatementReturn(return_initiated, return_field)
 
             case _:
@@ -218,12 +218,12 @@ class ObjectDefinition:
         method_params: List[Dict[str, Field]], 
         method_return_type: Tuple[Type, str | None],
         substatements: List[str], 
-        calling_class: List[Self],
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> Tuple[bool, Field]:
         statement_return = None
         for substatement in substatements:
-            statement_return = self.__run_statement(method_params, method_return_type, substatement, calling_class, interpreter)
+            statement_return = self.__run_statement(method_params, method_return_type, substatement, calling_class_list, interpreter)
             if statement_return.return_initiated:
                 return (True, statement_return.return_field)
         
@@ -236,19 +236,19 @@ class ObjectDefinition:
         target_obj: str, 
         method_name: str, 
         method_args: List[str], 
-        calling_class: List[Self],
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> Field:
         # Evaluate anything in args
         arg_values = list()
         for arg in method_args:
-            arg_values.append(self.__executor_return(line_num, method_params, None, arg, calling_class, interpreter))  # Re-use some code, does the same stuff
+            arg_values.append(self.__executor_return(line_num, method_params, None, arg, calling_class_list, interpreter))  # Re-use some code, does the same stuff
 
         other_obj: ObjectDefinition = None
 
         # Target object may be an expression
         if isinstance(target_obj, list):
-            return_val = self.__executor_return(line_num, method_params, None, target_obj, calling_class, interpreter).value
+            return_val = self.__executor_return(line_num, method_params, None, target_obj, calling_class_list, interpreter).value
             if not isinstance(return_val, ObjectDefinition):
                 interpreter.error(ErrorType.TYPE_ERROR, f"Expression does not return a class", line_num)
             else:
@@ -259,12 +259,13 @@ class ObjectDefinition:
             if target_obj == InterpreterBase.ME_DEF:
                 # Find lowest derived "ME"
                 object_to_call: ObjectDefinition = None
-                for o in calling_class:
+                for o in calling_class_list:
                     if o.inherits(self.class_name):
                         object_to_call = o
-                return object_to_call.call_method(method_name, arg_values, calling_class, interpreter)
+                        break
+                return object_to_call.call_method(method_name, arg_values, calling_class_list, interpreter)
             if target_obj == InterpreterBase.SUPER_DEF:
-                return self.superclass.call_method(method_name, arg_values, calling_class, interpreter)
+                return self.superclass.call_method(method_name, arg_values, calling_class_list, interpreter)
             
             # Call a method in another object
             # Check to see if reference is valid
@@ -279,7 +280,7 @@ class ObjectDefinition:
             if other_obj is None:
                 interpreter.error(ErrorType.FAULT_ERROR, f"Reference is null: {target_obj}", line_num)
 
-        return other_obj.call_method(method_name, arg_values, calling_class, interpreter)
+        return other_obj.call_method(method_name, arg_values, calling_class_list, interpreter)
 
     def __executor_if(
         self,
@@ -287,7 +288,7 @@ class ObjectDefinition:
         method_params: List[Dict[str, Field]], 
         method_return_type: Tuple[Type, str | None],
         args: List[str], 
-        calling_class: List[Self],
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> Tuple[bool, Field]:
         if len(args) != 2 and len(args) != 3:
@@ -300,7 +301,7 @@ class ObjectDefinition:
 
         # Evaluate predicate
         predicate_val: bool = None
-        predicate_return: Field = self.__executor_return(line_num, method_params, None, predicate, calling_class, interpreter)
+        predicate_return: Field = self.__executor_return(line_num, method_params, None, predicate, calling_class_list, interpreter)
         if predicate_return.type != Type.BOOL:
             interpreter.error(ErrorType.TYPE_ERROR, f"Predicate is not a boolean", line_num)
         else:
@@ -308,11 +309,11 @@ class ObjectDefinition:
         
         # Run the correct clause
         if predicate_val:
-            clause_return = self.__run_statement(method_params, method_return_type, true_clause, calling_class, interpreter)
+            clause_return = self.__run_statement(method_params, method_return_type, true_clause, calling_class_list, interpreter)
             return (clause_return.return_initiated, clause_return.return_field)
         else:
             if false_clause is not None:
-                clause_return = self.__run_statement(method_params, method_return_type, false_clause, calling_class, interpreter)
+                clause_return = self.__run_statement(method_params, method_return_type, false_clause, calling_class_list, interpreter)
                 return (clause_return.return_initiated, clause_return.return_field)
             else:
                 return (False, None)
@@ -365,7 +366,7 @@ class ObjectDefinition:
         method_params: List[Dict[str, Field]],
         method_return_type: Tuple[Type, str | None], 
         stuff_to_print: List[str], 
-        calling_class: List[Self],
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> None:
         # Special handling since Python uses "True/False" while Brewin uses "true/false" and "None" vs. null
@@ -382,7 +383,7 @@ class ObjectDefinition:
         for expression in stuff_to_print:
             # Evaluate expression
             if isinstance(expression, list):
-                statement_return = self.__run_statement(method_params, method_return_type, expression, calling_class, interpreter)
+                statement_return = self.__run_statement(method_params, method_return_type, expression, calling_class_list, interpreter)
                 about_to_print.append(__stringify(statement_return.return_field))
             # Evaluate constant/literal or variable lookup
             else:
@@ -392,7 +393,7 @@ class ObjectDefinition:
                 if raw_type is not None:
                     append_this = Field("temp", raw_type, raw_thing)
                 else:
-                    append_this = self.__get_var_value(line_num, expression, method_params, interpreter)
+                    append_this = self.__get_var_value(line_num, expression, method_params, calling_class_list, interpreter)
 
                 about_to_print.append(__stringify(append_this))      
 
@@ -405,7 +406,7 @@ class ObjectDefinition:
         method_params: List[Dict[str, Field]], 
         method_return_type: Tuple[Type, str | None],
         expr: str, 
-        calling_class: List[Self],
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> Field:
         # A void method should not return anything
@@ -415,7 +416,7 @@ class ObjectDefinition:
 
         # Evaluate the expr expression, if applicable
         if isinstance(expr, list):
-            statement_return = self.__run_statement(method_params, method_return_type, expr, calling_class, interpreter)
+            statement_return = self.__run_statement(method_params, method_return_type, expr, calling_class_list, interpreter)
             ret_field = statement_return.return_field
 
             # If this is None, then __executor_return was just called to evaluate an expression
@@ -442,7 +443,7 @@ class ObjectDefinition:
             # A variable lookup
             else:
                 var_name = expr
-                var_value = self.__get_var_value(line_num, var_name, method_params, interpreter)
+                var_value = self.__get_var_value(line_num, var_name, method_params, calling_class_list, interpreter)
 
             # If this is None, then __executor_return was just called to evaluate an expression
             if method_return_type is None:
@@ -465,13 +466,13 @@ class ObjectDefinition:
         method_return_type: Tuple[Type, str | None],
         var_name: str, 
         new_val: any, 
-        calling_class: List[Self],
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> None:
         # Evaluate the new_val expression, if applicable
         set_to_this = (None, None)
         if isinstance(new_val, list):
-            statement_return = self.__run_statement(method_params, method_return_type, new_val, calling_class, interpreter)
+            statement_return = self.__run_statement(method_params, method_return_type, new_val, calling_class_list, interpreter)
             if statement_return.return_field is None:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Cannot set variable to result of void function", line_num)
             else:
@@ -522,7 +523,7 @@ class ObjectDefinition:
         method_return_type: Tuple[Type, str | None],
         predicate: str | List[str], 
         true_clause: List[str], 
-        calling_class: List[Self],
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> Tuple[bool, Field]:
         if predicate is None or true_clause is None:
@@ -531,7 +532,7 @@ class ObjectDefinition:
         # Evaluate predicate
         def __evaluate_predicate() -> bool:
             predicate_val: bool = None
-            predicate_return: Field = self.__executor_return(line_num, method_params, None, predicate, calling_class, interpreter)
+            predicate_return: Field = self.__executor_return(line_num, method_params, None, predicate, calling_class_list, interpreter)
             if predicate_return.type != Type.BOOL:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Predicate is not a boolean", line_num)
             else:
@@ -540,7 +541,7 @@ class ObjectDefinition:
         
         # Run the correct clause
         while __evaluate_predicate():
-            clause_return = self.__run_statement(method_params, method_return_type, true_clause, calling_class, interpreter)
+            clause_return = self.__run_statement(method_params, method_return_type, true_clause, calling_class_list, interpreter)
             if clause_return.return_initiated:
                 return (clause_return.return_initiated, clause_return.return_field)
         else:
@@ -570,7 +571,7 @@ class ObjectDefinition:
         method_params: List[Dict[str, Field]], 
         command: str, 
         args: List[Field],
-        calling_class: List[Self],
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> Field:
         if (len(args) > 2):
@@ -579,7 +580,7 @@ class ObjectDefinition:
         # Evaluate operands
         arg_values: List[Field] = list()
         for arg in args:
-            arg_values.append(self.__executor_return(line_num, method_params, None, arg, calling_class, interpreter))  # Re-use some code, does the same stuff
+            arg_values.append(self.__executor_return(line_num, method_params, None, arg, calling_class_list, interpreter))  # Re-use some code, does the same stuff
 
         # Operands can either be both strings (+) or both ints
         both_strings = False
@@ -612,7 +613,7 @@ class ObjectDefinition:
         method_params: List[Dict[str, Field]], 
         command: str, 
         args: List[Field],
-        calling_class: List[Self],
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> Field:
         if (len(args) > 2):
@@ -621,7 +622,7 @@ class ObjectDefinition:
         # Evaluate operands
         arg_values: List[Field] = list()
         for arg in args:
-            arg_values.append(self.__executor_return(line_num, method_params, None, arg, calling_class, interpreter))  # Re-use some code, does the same stuff
+            arg_values.append(self.__executor_return(line_num, method_params, None, arg, calling_class_list, interpreter))  # Re-use some code, does the same stuff
 
         # Operands can either be both strings or both ints
         int_string = [Type.INT, Type.STRING]
@@ -699,10 +700,10 @@ class ObjectDefinition:
         line_num: int,
         method_params: List[Dict[str, Field]], 
         arg: str, 
-        calling_class: List[Self],
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> Field:
-        arg_value = self.__executor_return(line_num, method_params, None, arg, calling_class, interpreter)
+        arg_value = self.__executor_return(line_num, method_params, None, arg, calling_class_list, interpreter)
 
         # Unary NOT only works on booleans
         if arg_value.type != Type.BOOL:
@@ -717,7 +718,7 @@ class ObjectDefinition:
         method_return_type: Tuple[Type, str | None],
         declared_vars: List[str],
         substatements: List[str], 
-        calling_class: List[Self],
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> Tuple[bool, Field]:
         # Get all declared variables
@@ -744,18 +745,25 @@ class ObjectDefinition:
         new_method_params = [declared_fields] + method_params
 
         # Everything else is just like running a begin statement
-        return self.__executor_begin(line_num, new_method_params, method_return_type, substatements, calling_class, interpreter)
+        return self.__executor_begin(line_num, new_method_params, method_return_type, substatements, calling_class_list, interpreter)
 
     def __get_var_value(
         self,  
         line_num: int,
         var_name: str, 
         method_params: List[Dict[str, Field]], 
+        calling_class_list: List[Self],
         interpreter: InterpreterBase
     ) -> Field:
         # Reference to self
         if var_name == InterpreterBase.ME_DEF:
-            return Field("temp", Type.OBJ, self, self.class_name)
+            # Find lowest derived "ME"
+            lowest_me: ObjectDefinition = None
+            for o in calling_class_list:
+                if o.inherits(self.class_name):
+                    lowest_me = o
+                    break
+            return Field("temp", Type.OBJ, lowest_me, lowest_me.class_name)
         # A variable lookup
         elif (found_var := self.__get_var_from_params_list(var_name, method_params)) is not None:
             return found_var
