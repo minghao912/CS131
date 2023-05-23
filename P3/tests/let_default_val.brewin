@@ -1,0 +1,8 @@
+(class main
+    (method void main ()
+        (let ((int x 10) (bool y))
+            (print x)
+            (print y)
+        )
+    )
+)

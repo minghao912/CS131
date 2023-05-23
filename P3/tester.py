@@ -1,7 +1,7 @@
-from interpreterv2 import Interpreter
+from interpreterv3 import Interpreter
 
 program = []
-with open('tests/g.brewin') as f:
+with open('tests/let_default_val.brewin') as f:
     program = f.read().splitlines()
     f.close()
 

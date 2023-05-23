@@ -77,3 +77,6 @@ class Interpreter(InterpreterBase):
             return None
         else:
             return self.__classes[class_name]
+        
+    def get_valid_class_list(self) -> List[str]:
+        return list(self.__classes.keys())

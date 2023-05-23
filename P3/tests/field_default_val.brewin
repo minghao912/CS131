@@ -1,0 +1,11 @@
+(class main
+    (field int x 10)
+    (field bool y)
+
+    (method void main ()
+        (begin
+            (print x)
+            (print y)
+        )
+    )
+)

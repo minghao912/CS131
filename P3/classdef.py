@@ -27,22 +27,32 @@ class ClassDefinition:
                 case InterpreterBase.FIELD_DEF:
                     field_type = body_chunk[1]
                     field_name = body_chunk[2]
-                    init_value = body_chunk[3]
+                    init_value = body_chunk[3] if (len(body_chunk) >= 4) else None
 
                     if field_name in self.fields:
                         interpreter.error(ErrorType.NAME_ERROR, f"Duplicate field: {field_name}", body_chunk[0].line_num)
                     else:
-                        parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, current_class_list)
+                        # Initial value not provided, use default value
+                        if init_value is None:
+                            parsed_type = utils.parse_type_from_str(field_type, self.__current_class_list)
+                            if parsed_type == Type.NULL:
+                                interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", body_chunk[0].line_num)
 
-                        # parsed_type will be none if an error occurred during value parsing (only possible error is incompatible type)
-                        if parsed_type == None:
-                            interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type '{field_type}' with value '{init_value}'", body_chunk[0].line_num)
-                        elif parsed_type == Type.NULL:
-                            interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", body_chunk[0].line_num)
-                        elif parsed_type == Type.OBJ:
-                            self.fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
+                            default_init_value = utils.get_default_value(parsed_type)
+                            self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_name if parsed_type == Type.OBJ else None))
+                        # Initial value provided
                         else:
-                            self.fields[field_name] = Field(field_name, parsed_type, parsed_value)
+                            parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, current_class_list)
+
+                            # parsed_type will be none if an error occurred during value parsing (only possible error is incompatible type)
+                            if parsed_type == None:
+                                interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type '{field_type}' with value '{init_value}'", body_chunk[0].line_num)
+                            elif parsed_type == Type.NULL:
+                                interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", body_chunk[0].line_num)
+                            elif parsed_type == Type.OBJ:
+                                self.fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
+                            else:
+                                self.fields[field_name] = Field(field_name, parsed_type, parsed_value)
                 # Methods are in format [1] return_type, [2]: name, [3]: params list, [4]: body
                 case InterpreterBase.METHOD_DEF:
                     method_return_type = body_chunk[1]

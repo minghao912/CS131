@@ -104,7 +104,7 @@ def check_compatible_types(field1: Field, field2: Field, interpreter: Interprete
     else:
         raise Exception(f"Expected {field1.type} but got {field2.type} instead")
 
-def get_default_return_value(return_type: Type) -> int | bool | str | None:
+def get_default_value(return_type: Type) -> int | bool | str | None:
     match return_type:
         case Type.INT:
             return 0

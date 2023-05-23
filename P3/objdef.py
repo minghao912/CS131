@@ -88,7 +88,7 @@ class ObjectDefinition:
             statement_return.return_field = Field(
                 "temp", 
                 methodReturnType[0], 
-                utils.get_default_return_value(methodReturnType[0]),
+                utils.get_default_value(methodReturnType[0]),
                 methodReturnType[1]
             )
 
@@ -726,20 +726,30 @@ class ObjectDefinition:
         for dec_var in declared_vars:
             field_type = dec_var[0]
             field_name = dec_var[1]
-            init_value = dec_var[2]
+            init_value = dec_var[2] if (len(dec_var) >= 3) else None
 
             if field_name in declared_fields: # or self.get_var_from_polymorphic_fields(field_name) is not None:
                 interpreter.error(ErrorType.NAME_ERROR, f"Duplicate field: {field_name}", line_num)
             else:
-                parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__names_of_valid_classes)
+                # Initial value not provided, use default value
+                if init_value is None:
+                    parsed_type = utils.parse_type_from_str(field_type, interpreter.get_valid_class_list)
+                    if parsed_type == Type.NULL:
+                        interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", line_num)
 
-                # parsed_type will be none if an error occurred during value parsing (only possible error is incompatible type)
-                if parsed_type is None:
-                    interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type '{field_type}' with value '{init_value}'", line_num)
-                elif parsed_type == Type.OBJ:
-                    declared_fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
+                    default_init_value = utils.get_default_value(parsed_type)
+                    self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_name if parsed_type == Type.OBJ else None))
+                # Initial value provided
                 else:
-                    declared_fields[field_name] = Field(field_name, parsed_type, parsed_value)
+                    parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__names_of_valid_classes)
+
+                    # parsed_type will be none if an error occurred during value parsing (only possible error is incompatible type)
+                    if parsed_type is None:
+                        interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type '{field_type}' with value '{init_value}'", line_num)
+                    elif parsed_type == Type.OBJ:
+                        declared_fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
+                    else:
+                        declared_fields[field_name] = Field(field_name, parsed_type, parsed_value)
 
         # Add declared fields to FRONT of method params for precedence
         new_method_params = [declared_fields] + method_params
