@@ -1,4 +1,3 @@
-from dataclasses import field
 from intbase import ErrorType, InterpreterBase
 from helperclasses import Field, Method, Type
 from objdef import ObjectDefinition

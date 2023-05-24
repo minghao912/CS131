@@ -131,7 +131,7 @@ class ObjectDefinition:
     # If returned bool is True, a "return" has been issued
     def __run_statement(
         self, 
-        parameters: Dict[str, Field], 
+        parameters: List[Dict[str, Field]], 
         method_return_type: Tuple[Type, str | None],
         statement: List[str], 
         calling_class_list: List[Self],
@@ -169,8 +169,8 @@ class ObjectDefinition:
 
             case InterpreterBase.PRINT_DEF:
                 stuff_to_print = statement[1:]
-                self.__executor_print(command.line_num, parameters, method_return_type, stuff_to_print, calling_class_list, interpreter)
-                return StatementReturn(False, None)
+                return_initiated, return_field = self.__executor_print(command.line_num, parameters, method_return_type, stuff_to_print, calling_class_list, interpreter)
+                return StatementReturn(return_initiated, return_field)
 
             case InterpreterBase.RETURN_DEF:
                 if len(statement) < 2:
@@ -178,8 +178,8 @@ class ObjectDefinition:
                 return StatementReturn(True, self.__executor_return(command.line_num, parameters, method_return_type, statement[1], calling_class_list, interpreter))
 
             case InterpreterBase.SET_DEF:
-                self.__executor_set(command.line_num, parameters, method_return_type, statement[1], statement[2], calling_class_list, interpreter)
-                return StatementReturn(False, None)
+                return_initiated, return_field = self.__executor_set(command.line_num, parameters, method_return_type, statement[1], statement[2], calling_class_list, interpreter)
+                return StatementReturn(return_initiated, return_field)
 
             case InterpreterBase.WHILE_DEF:
                 function_return = self.__executor_while(command.line_num, parameters, method_return_type, statement[1], statement[2], calling_class_list, interpreter)
@@ -209,8 +209,13 @@ class ObjectDefinition:
                 return_initiated, return_field = self.__executor_let(command.line_num, parameters, method_return_type, declared_vars, substatements, calling_class_list, interpreter)
                 return StatementReturn(return_initiated, return_field)
             
+            # In format [1] statement to try, [2] statement for catch
             case InterpreterBase.TRY_DEF:
-                pass
+                try_statement = statement[1]
+                catch_statement = statement[2] if (len(statement) >= 3) else None
+
+                return_initiated, return_field = self.__executor_try(command.line_num, parameters, method_return_type, try_statement, catch_statement, calling_class_list, interpreter)
+                return StatementReturn(return_initiated, return_field)
 
             # In format [1] thing to throw
             case InterpreterBase.THROW_DEF:
@@ -261,17 +266,27 @@ class ObjectDefinition:
         # Evaluate anything in args
         arg_values = list()
         for arg in method_args:
-            arg_values.append(self.__executor_return(line_num, method_params, None, arg, calling_class_list, interpreter))  # Re-use some code, does the same stuff
+            evaluated_field = self.__executor_return(line_num, method_params, None, arg, calling_class_list, interpreter)   # Re-use some code, does the same stuff
+
+            # Check for exception
+            if evaluated_field.type == Type.EXCEPTION:
+                return (True, evaluated_field)
+            else:
+                arg_values.append(evaluated_field)
+
 
         other_obj: ObjectDefinition = None
 
         # Target object may be an expression
         if isinstance(target_obj, list):
-            return_val = self.__executor_return(line_num, method_params, None, target_obj, calling_class_list, interpreter).value
-            if not isinstance(return_val, ObjectDefinition):
+            return_field = self.__executor_return(line_num, method_params, None, target_obj, calling_class_list, interpreter)
+            # Check for exception
+            if return_field.type == Type.EXCEPTION:
+                return (True, return_field)
+            elif not isinstance(return_field.value, ObjectDefinition):
                 interpreter.error(ErrorType.TYPE_ERROR, f"Expression does not return a class", line_num)
             else:
-                other_obj = return_val
+                other_obj = return_field.value
         # Target object is a variable or "me"
         else:
             # Call a method in my own object
@@ -325,7 +340,10 @@ class ObjectDefinition:
         # Evaluate predicate
         predicate_val: bool = None
         predicate_return: Field = self.__executor_return(line_num, method_params, None, predicate, calling_class_list, interpreter)
-        if predicate_return.type != Type.BOOL:
+        # Check for exception
+        if predicate_return.type == Type.EXCEPTION:
+            return (True, predicate_return)
+        elif predicate_return.type != Type.BOOL:
             interpreter.error(ErrorType.TYPE_ERROR, f"Predicate is not a boolean", line_num)
         else:
             predicate_val: bool = predicate_return.value
@@ -391,7 +409,7 @@ class ObjectDefinition:
         stuff_to_print: List[str], 
         calling_class_list: List[Self],
         interpreter: InterpreterBase
-    ) -> None:
+    ) -> Tuple[bool, Field]:
         # Special handling since Python uses "True/False" while Brewin uses "true/false" and "None" vs. null
         def __stringify(thing: Field) -> str:
             if thing.type == Type.BOOL:
@@ -407,7 +425,11 @@ class ObjectDefinition:
             # Evaluate expression
             if isinstance(expression, list):
                 statement_return = self.__run_statement(method_params, method_return_type, expression, calling_class_list, interpreter)
-                about_to_print.append(__stringify(statement_return.return_field))
+                # Check for exception
+                if statement_return.return_field.type == Type.EXCEPTION:
+                    return (True, statement_return.return_field)
+                else:
+                    about_to_print.append(__stringify(statement_return.return_field))
             # Evaluate constant/literal or variable lookup
             else:
                 raw_type, raw_thing = utils.parse_type_value(expression)
@@ -422,6 +444,8 @@ class ObjectDefinition:
 
         final_string = "".join(map(str, about_to_print))
         interpreter.output(final_string)
+
+        return (False, None)
 
     def __executor_return(
         self,  
@@ -441,6 +465,8 @@ class ObjectDefinition:
         if isinstance(expr, list):
             statement_return = self.__run_statement(method_params, method_return_type, expr, calling_class_list, interpreter)
             ret_field = statement_return.return_field
+            if ret_field.type == Type.EXCEPTION:
+                return ret_field
 
             # If this is None, then __executor_return was just called to evaluate an expression
             if method_return_type is None:
@@ -491,13 +517,15 @@ class ObjectDefinition:
         new_val: any, 
         calling_class_list: List[Self],
         interpreter: InterpreterBase
-    ) -> None:
+    ) -> Tuple[bool, Field]:
         # Evaluate the new_val expression, if applicable
         set_to_this = (None, None)
         if isinstance(new_val, list):
             statement_return = self.__run_statement(method_params, method_return_type, new_val, calling_class_list, interpreter)
             if statement_return.return_field is None:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Cannot set variable to result of void function", line_num)
+            elif statement_return.return_field.type == Type.EXCEPTION:
+                return (True, statement_return.return_field)
             else:
                 set_to_this = (statement_return.return_field.type, statement_return.return_field.value, statement_return.return_field.obj_name)
         # Get the constant/literal or variable
@@ -539,6 +567,8 @@ class ObjectDefinition:
         field_to_be_set.value = set_to_this[1]
         # field_to_be_set.obj_name = set_to_this[2]
 
+        return (False, None)
+
     def __executor_while(
         self,
         line_num: int, 
@@ -556,7 +586,10 @@ class ObjectDefinition:
         def __evaluate_predicate() -> bool:
             predicate_val: bool = None
             predicate_return: Field = self.__executor_return(line_num, method_params, None, predicate, calling_class_list, interpreter)
-            if predicate_return.type != Type.BOOL:
+            # Check for exception
+            if predicate_return.type == Type.EXCEPTION:
+                return (True, predicate_return)
+            elif predicate_return.type != Type.BOOL:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Predicate is not a boolean", line_num)
             else:
                 predicate_val: bool = predicate_return.value
@@ -603,7 +636,13 @@ class ObjectDefinition:
         # Evaluate operands
         arg_values: List[Field] = list()
         for arg in args:
-            arg_values.append(self.__executor_return(line_num, method_params, None, arg, calling_class_list, interpreter))  # Re-use some code, does the same stuff
+            evaluated_field = self.__executor_return(line_num, method_params, None, arg, calling_class_list, interpreter)   # Re-use some code, does the same stuff
+
+            # Check for exception
+            if evaluated_field.type == Type.EXCEPTION:
+                return (True, evaluated_field)
+            else:
+                arg_values.append(evaluated_field)
 
         # Operands can either be both strings (+) or both ints
         both_strings = False
@@ -645,7 +684,13 @@ class ObjectDefinition:
         # Evaluate operands
         arg_values: List[Field] = list()
         for arg in args:
-            arg_values.append(self.__executor_return(line_num, method_params, None, arg, calling_class_list, interpreter))  # Re-use some code, does the same stuff
+            evaluated_field = self.__executor_return(line_num, method_params, None, arg, calling_class_list, interpreter)   # Re-use some code, does the same stuff
+
+            # Check for exception
+            if evaluated_field.type == Type.EXCEPTION:
+                return (True, evaluated_field)
+            else:
+                arg_values.append(evaluated_field)
 
         # Operands can either be both strings or both ints
         int_string = [Type.INT, Type.STRING]
@@ -727,6 +772,9 @@ class ObjectDefinition:
         interpreter: InterpreterBase
     ) -> Field:
         arg_value = self.__executor_return(line_num, method_params, None, arg, calling_class_list, interpreter)
+        # Check for exception
+        if arg_value.type == Type.EXCEPTION:
+            return (True, arg_value)
 
         # Unary NOT only works on booleans
         if arg_value.type != Type.BOOL:
@@ -793,7 +841,7 @@ class ObjectDefinition:
         if isinstance(exception_msg, list):
             statement_return = self.__run_statement(method_params, method_return_type, exception_msg, calling_class_list, interpreter)
             if statement_return.return_field.type != Type.STRING:
-                interpreter.error(ErrorType.TYPE_ERROR, f"Cannot throw object of type '{statement_return.return_field.type}', expected Type.STRING")
+                interpreter.error(ErrorType.TYPE_ERROR, f"Cannot throw object of type '{statement_return.return_field.type}', expected 'Type.STRING'")
 
             return Field("temp", Type.EXCEPTION, statement_return.return_field.value, None)
         # Evaluate constant/literal or variable lookup
@@ -801,15 +849,42 @@ class ObjectDefinition:
             raw_type, raw_thing = utils.parse_type_value(exception_msg)
             if raw_type is not None:
                 if raw_type != Type.STRING:
-                    interpreter.error(ErrorType.TYPE_ERROR, f"Cannot throw object of type '{statement_return.return_field.type}', expected Type.STRING")
+                    interpreter.error(ErrorType.TYPE_ERROR, f"Cannot throw object of type '{raw_type}', expected 'Type.STRING'")
 
                 return Field("temp", Type.EXCEPTION, raw_thing, None)
             else:
                 found_field = self.__get_var_value(line_num, exception_msg, method_params, calling_class_list, interpreter)
                 if found_field.type != Type.STRING:
-                    interpreter.error(ErrorType.TYPE_ERROR, f"Cannot throw object of type '{statement_return.return_field.type}', expected Type.STRING")
+                    interpreter.error(ErrorType.TYPE_ERROR, f"Cannot throw object of type '{found_field.type}', expected 'Type.STRING'")
                 
                 return Field("temp", Type.EXCEPTION, found_field.value, None)
+            
+    def __executor_try(
+        self,
+        line_num: int, 
+        method_params: List[Dict[str, Field]], 
+        method_return_type: Tuple[Type, str | None], 
+        try_statement: str, 
+        catch_statement: str, 
+        calling_class_list: List[Self], 
+        interpreter: InterpreterBase
+    ) -> Tuple[bool, Field]:
+        # Run try statement
+        try_return = self.__run_statement(method_params, method_return_type, try_statement, calling_class_list, interpreter)
+
+        # If no exception occurs, proceed normally
+        if try_return.return_field.type != Type.EXCEPTION:
+            return (try_return.return_initiated, try_return.return_field)
+        # Else try to run the catch block
+        else:
+            if catch_statement is not None:
+                # Add a local var 'exception' that contains the thrown message
+                modified_method_params = [{'exception': Field("exception", Type.STRING, try_return.return_field.value, None)}]  + method_params
+                catch_return = self.__run_statement(modified_method_params, method_return_type, catch_statement, calling_class_list, interpreter)
+                return (catch_return.return_initiated, catch_return.return_field)
+            # No catch block, propagate exception
+            else:
+                return (try_return.return_initiated, try_return.return_field)
 
     def __get_var_value(
         self,  
