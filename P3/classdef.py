@@ -38,7 +38,7 @@ class ClassDefinition:
                                 interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", body_chunk[0].line_num)
 
                             default_init_value = utils.get_default_value(parsed_type)
-                            self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_name if parsed_type == Type.OBJ else None))
+                            self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_type if parsed_type == Type.OBJ else None))
                         # Initial value provided
                         else:
                             parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, current_class_list)

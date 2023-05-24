@@ -94,7 +94,7 @@ def check_compatible_types(field1: Field, field2: Field, interpreter: Interprete
                 else:
                     raise Exception(f"Expected object of type '{field1.obj_name}' but got '{field2.obj_name}' instead")
             else:
-                raise Exception(f"Type '{field2.obj_name}'' does not exist")
+                raise Exception(f"Type '{field2.obj_name}' does not exist")
         elif field2.value.inherits(field1.obj_name):   
             return True
         else:

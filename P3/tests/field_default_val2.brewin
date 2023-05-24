@@ -1,0 +1,33 @@
+(class test
+    (field int y 10)
+    (method int get_y ()
+        (return y)
+    )
+)
+
+(class main
+    (field int x)
+    (field int x1 15)
+    (field bool y)
+    (field bool y1 true)
+    (field string s)
+    (field string s1 "this is a string!")
+    (field test o)
+    (field test o1 null)
+
+    (method void main ()
+        (begin
+            (print x)
+            (print x1)
+            (print y)
+            (print y1)
+            (print s)
+            (print s1)
+
+            (set o1 (new test))
+            (if (== o null) (print "o is null") (print "o is not null"))
+            (if (== o o1) (print "o is o1") (print "o is not o1"))
+            (print "o1.y is " (call o1 get_y))
+        )
+    )
+)
