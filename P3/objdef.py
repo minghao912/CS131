@@ -340,11 +340,11 @@ class ObjectDefinition:
         # Evaluate predicate
         predicate_val: bool = None
         predicate_return: Field = self.__executor_return(line_num, method_params, None, predicate, calling_class_list, interpreter)
-        # Check for exception
-        if predicate_return.type == Type.EXCEPTION:
-            return (True, predicate_return)
-        elif predicate_return.type != Type.BOOL:
+        if predicate_return is None or predicate_return.type != Type.BOOL:
             interpreter.error(ErrorType.TYPE_ERROR, f"Predicate is not a boolean", line_num)
+        # Check for exception
+        elif predicate_return.type == Type.EXCEPTION:
+            return (True, predicate_return)
         else:
             predicate_val: bool = predicate_return.value
         
@@ -583,25 +583,32 @@ class ObjectDefinition:
             interpreter.error(ErrorType.SYNTAX_ERROR, "Too few or too many arguments for if statement", line_num)
 
         # Evaluate predicate
-        def __evaluate_predicate() -> bool:
-            predicate_val: bool = None
+        def __evaluate_predicate() -> Tuple[bool, Field]:
             predicate_return: Field = self.__executor_return(line_num, method_params, None, predicate, calling_class_list, interpreter)
+
             # Check for exception
             if predicate_return.type == Type.EXCEPTION:
-                return (True, predicate_return)
+                return (False, predicate_return)
             elif predicate_return.type != Type.BOOL:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Predicate is not a boolean", line_num)
             else:
-                predicate_val: bool = predicate_return.value
-            return predicate_val
-        
-        # Run the correct clause
-        while __evaluate_predicate():
+                return (predicate_return.value, None)
+
+        while (predicate_return := __evaluate_predicate())[0]:
             clause_return = self.__run_statement(method_params, method_return_type, true_clause, calling_class_list, interpreter)
             if clause_return.return_initiated:
                 return (clause_return.return_initiated, clause_return.return_field)
         else:
-            return (False, None)
+            # If "predicate_return.value" is False, two options
+            # Option 1: the predicate evaluates to False. In this case, the [1] of the tuple will always be None
+            #   It is safe to return normally
+            if predicate_return[1] is None:
+                return (False, None)
+            # Option 2: An error occurred. Then the [1] of the tuple will not be None (it will be a Field)
+            #   Treat as exception
+            else:
+                return (True, predicate_return[1])
+            
 
     def __executor_new(
         self,
@@ -840,7 +847,7 @@ class ObjectDefinition:
         # Evaluate expression
         if isinstance(exception_msg, list):
             statement_return = self.__run_statement(method_params, method_return_type, exception_msg, calling_class_list, interpreter)
-            if statement_return.return_field.type != Type.STRING:
+            if statement_return.return_field.type != Type.STRING and statement_return.return_field.type != Type.EXCEPTION:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Cannot throw object of type '{statement_return.return_field.type}', expected 'Type.STRING'")
 
             return Field("temp", Type.EXCEPTION, statement_return.return_field.value, None)
@@ -848,13 +855,13 @@ class ObjectDefinition:
         else:
             raw_type, raw_thing = utils.parse_type_value(exception_msg)
             if raw_type is not None:
-                if raw_type != Type.STRING:
+                if raw_type != Type.STRING and raw_type != Type.EXCEPTION:
                     interpreter.error(ErrorType.TYPE_ERROR, f"Cannot throw object of type '{raw_type}', expected 'Type.STRING'")
 
                 return Field("temp", Type.EXCEPTION, raw_thing, None)
             else:
                 found_field = self.__get_var_value(line_num, exception_msg, method_params, calling_class_list, interpreter)
-                if found_field.type != Type.STRING:
+                if found_field.type != Type.STRING and found_field.type != Type.EXCEPTION:
                     interpreter.error(ErrorType.TYPE_ERROR, f"Cannot throw object of type '{found_field.type}', expected 'Type.STRING'")
                 
                 return Field("temp", Type.EXCEPTION, found_field.value, None)
@@ -873,7 +880,7 @@ class ObjectDefinition:
         try_return = self.__run_statement(method_params, method_return_type, try_statement, calling_class_list, interpreter)
 
         # If no exception occurs, proceed normally
-        if try_return.return_field.type != Type.EXCEPTION:
+        if try_return.return_field is None or try_return.return_field.type != Type.EXCEPTION:
             return (try_return.return_initiated, try_return.return_field)
         # Else try to run the catch block
         else:

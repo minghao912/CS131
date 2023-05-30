@@ -1,7 +1,7 @@
 from interpreterv3 import Interpreter
 
 program = []
-with open('tests/field_default_val2.brewin') as f:
+with open('tests/long_except.brewin') as f:
     program = f.read().splitlines()
     f.close()
 
