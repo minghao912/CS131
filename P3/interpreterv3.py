@@ -26,7 +26,7 @@ class Interpreter(InterpreterBase):
             # top_level_chunk[0]: class, [1]: class_name, [2]: class_contents
 
             # Ignore if not a class definition
-            if not top_level_chunk[0] == InterpreterBase.CLASS_DEF or not top_level_chunk[0] == InterpreterBase.TEMPLATE_CLASS_DEF:
+            if not top_level_chunk[0] == InterpreterBase.CLASS_DEF and not top_level_chunk[0] == InterpreterBase.TEMPLATE_CLASS_DEF:
                 continue
 
             # Parse definition
