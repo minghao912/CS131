@@ -818,7 +818,7 @@ class ObjectDefinition:
                 # Initial value not provided, use default value
                 if init_value is None:
                     parsed_type = utils.parse_type_from_str(field_type, interpreter.get_valid_class_list(), interpreter.get_valid_template_class_list())
-                    if parsed_type == Type.NULL:
+                    if parsed_type is None or parsed_type == Type.NULL:
                         interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", line_num)
 
                     default_init_value = utils.get_default_value(parsed_type)
@@ -831,8 +831,8 @@ class ObjectDefinition:
                     if parsed_type is None:
                         interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type '{field_type}' with value '{init_value}'", line_num)
                     elif parsed_type == Type.NULL:
-                        interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", line_num)
-                    elif parsed_type == Type.OBJ:
+                        interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type if parsed_value is None else parsed_value}'", line_num)
+                    elif parsed_type == Type.OBJ or parsed_type == Type.TCLASS:
                         declared_fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
                     else:
                         declared_fields[field_name] = Field(field_name, parsed_type, parsed_value)

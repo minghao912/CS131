@@ -42,8 +42,21 @@ def parse_type_from_str(type_name: str, current_class_list: List[str], template_
             return Type.NULL
         case _:
             # Check if it's a template class
-            if (firstAtSign := type_name.find('@')) != -1:
-                type_name = type_name[:firstAtSign]
+            if (first_at_sign := type_name.find('@')) != -1:
+                # Check if it's already a defined class
+                if type_name in current_class_list:
+                    return Type.OBJ
+                else:
+                    temp_type_name = type_name[first_at_sign + 1:]
+                    # Check if the template types are valid classes
+                    while (next_at_sign := temp_type_name.find('@')) != -1:
+                        if parse_type_from_str(temp_type_name[:next_at_sign], current_class_list, template_class_list) is None:
+                            return None
+                        temp_type_name = temp_type_name[next_at_sign + 1:]
+                    else:
+                        if parse_type_from_str(temp_type_name, current_class_list, template_class_list) is None:
+                            return None
+                        return Type.TCLASS
                 
             # Check if valid class
             if type_name in current_class_list:
@@ -78,13 +91,26 @@ def parse_value_given_type(type_name: str, val: str, current_class_list: List[st
                 return (None, None)
         case _:
             # Check if it's a template class
-            if (firstAtSign := type_name.find('@')) != -1:
-                type_name = type_name[:firstAtSign]
+            if (first_at_sign := type_name.find('@')) != -1:
+                # Check if it's already a defined class
+                if type_name in current_class_list:
+                    return (Type.OBJ, type_name)
+                else:
+                    temp_type_name = type_name[first_at_sign + 1:]
+                    # Check if the template types are valid classes
+                    while (next_at_sign := temp_type_name.find('@')) != -1:
+                        if parse_type_from_str(temp_type_name[:next_at_sign], current_class_list, template_class_list) is None:
+                            return (Type.NULL, temp_type_name[:next_at_sign])
+                        temp_type_name = temp_type_name[next_at_sign + 1:]
+                    else:
+                        if parse_type_from_str(temp_type_name, current_class_list, template_class_list) is None:
+                            return (Type.NULL, temp_type_name[:next_at_sign])
+                        return (Type.TCLASS, type_name)
 
-            # Check if it's a class
+            # Check if it's a normal class
             if type_name in current_class_list:
                 return (Type.OBJ, type_name)
-            # Check if it's a tclass
+            # Check if it's a tclass (no @ -- this should be an error but do not throw it here)
             elif type_name in template_class_list:
                 return (Type.TCLASS, type_name)
             else:

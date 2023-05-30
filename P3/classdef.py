@@ -42,7 +42,7 @@ class ClassDefinition:
                         # Initial value not provided, use default value
                         if init_value is None:
                             parsed_type = utils.parse_type_from_str(field_type, self.__current_class_list + list(self.template_types), self.__current_tclass_list)
-                            if parsed_type == Type.NULL:
+                            if parsed_type is None or parsed_type == Type.NULL:
                                 interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", body_chunk[0].line_num)
 
                             default_init_value = utils.get_default_value(parsed_type)
@@ -55,7 +55,7 @@ class ClassDefinition:
                             if parsed_type == None:
                                 interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type '{field_type}' with value '{init_value}'", body_chunk[0].line_num)
                             elif parsed_type == Type.NULL:
-                                interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", body_chunk[0].line_num)
+                                interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type if parsed_value is None else parsed_value}'", body_chunk[0].line_num)
                             elif parsed_type == Type.OBJ:
                                 self.fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
                             else:

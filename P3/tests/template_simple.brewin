@@ -13,7 +13,7 @@
 
 (class main
     (method void main ()
-        (let ((Person p_) (MyTemplate@Person tmp_ null))
+        (let ((Person p_) (MyTemplate@PersonNonExistent tmp_))
             (set p_ (new Person))
             (set tmp_ (new MyTemplate@Person))
             (call tmp_ act p_)
