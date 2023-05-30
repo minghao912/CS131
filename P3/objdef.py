@@ -643,7 +643,7 @@ class ObjectDefinition:
                     for tt in templated_types:
                         parsed_tt = utils.parse_type_from_str(tt, interpreter.get_valid_class_list(), interpreter.get_valid_template_class_list())
                         actual_templated_types.append(tt if parsed_tt in [Type.OBJ, Type.TCLASS] else parsed_tt)
-                        
+
                     other_class_obj = other_class.instantiate_self_tclass(actual_templated_types)
             else:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Unknown class: {arg}", line_num)
@@ -728,7 +728,7 @@ class ObjectDefinition:
         # Operands can either be both strings or both ints
         int_string = [Type.INT, Type.STRING]
         int_string_bool = [Type.INT, Type.STRING, Type.BOOL]
-        obj_null = [Type.NULL, Type.OBJ]
+        obj_null = [Type.NULL, Type.OBJ, Type.TCLASS]
         just_bool = [Type.BOOL]
 
         if command in ["<", ">", "<=", ">="] and \
