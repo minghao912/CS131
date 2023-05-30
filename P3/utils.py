@@ -41,7 +41,11 @@ def parse_type_from_str(type_name: str, current_class_list: List[str]) -> Type:
         case InterpreterBase.VOID_DEF:
             return Type.NULL
         case _:
-            # Check if it's a class
+            # Check if it's a template class
+            if (firstAtSign := type_name.find('@')) != -1:
+                type_name = type_name[:firstAtSign]
+                
+            # Check if valid class/tclass
             if type_name in current_class_list:
                 return Type.OBJ
             else:
@@ -117,7 +121,7 @@ def get_default_value(return_type: Type) -> int | bool | str | None:
         case Type.NULL:
             return None
         case _:
-            raise Exception("Not a valid return type!")
+            raise Exception(f"Not a valid type '{return_type}'!")
 
 def get_method_type_list(method_params: List[Tuple[Type, str, str]]) -> List[Tuple[Type, str]]:
     return map(

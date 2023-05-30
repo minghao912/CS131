@@ -11,6 +11,7 @@ class Interpreter(InterpreterBase):
 
         # Instance vars
         self.__classes: Dict[str, ClassDefinition] = dict()
+        self.__template_classes: Dict[str, ClassDefinition] = dict()
         self.trace_output = trace_output
 
     def run(self, program: List[str]):
@@ -25,7 +26,7 @@ class Interpreter(InterpreterBase):
             # top_level_chunk[0]: class, [1]: class_name, [2]: class_contents
 
             # Ignore if not a class definition
-            if not top_level_chunk[0] == InterpreterBase.CLASS_DEF:
+            if not top_level_chunk[0] == InterpreterBase.CLASS_DEF or not top_level_chunk[0] == InterpreterBase.TEMPLATE_CLASS_DEF:
                 continue
 
             # Parse definition
@@ -36,27 +37,40 @@ class Interpreter(InterpreterBase):
         for top_level_chunk in parsed_program:
             # top_level_chunk[0]: class, [1]: class_name, [2]: class_contents
 
-            # Ignore if not a class definition
-            if not top_level_chunk[0] == InterpreterBase.CLASS_DEF:
-                continue
+            # Ignore if not a class/tclass definition
+            if top_level_chunk[0] == InterpreterBase.CLASS_DEF:
+                # Parse definition
+                new_class_name = top_level_chunk[1]
+                superclass: ClassDefinition = None
+                if len(top_level_chunk) >= 4 and top_level_chunk[2] == InterpreterBase.INHERITS_DEF:
+                    superclass_name: str = top_level_chunk[3]
+                    if (superclass_def := self.get_class(superclass_name)) is None:
+                        self.error(ErrorType.TYPE_ERROR, f"Invalid class '{superclass_name}' in '{top_level_chunk}'", new_class_name.line_num)
+                    else:
+                        superclass = superclass_def
 
-            # Parse definition
-            new_class_name = top_level_chunk[1]
-            superclass: ClassDefinition = None
-            if len(top_level_chunk) >= 4 and top_level_chunk[2] == InterpreterBase.INHERITS_DEF:
-                superclass_name: str = top_level_chunk[3]
-                if (superclass_def := self.get_class(superclass_name)) is None:
-                    self.error(ErrorType.TYPE_ERROR, f"Invalid class '{superclass_name}' in '{top_level_chunk}'", new_class_name.line_num)
+                # Create that class and add it to storage
+                if new_class_name in self.__classes:
+                    self.error(ErrorType.TYPE_ERROR, f"Duplicate class name {new_class_name}", new_class_name.line_num)
                 else:
-                    superclass = superclass_def
+                    current_class_list = list(discovery_list)
+                    self.__classes[new_class_name] = ClassDefinition(top_level_chunk, superclass, current_class_list, False, self, self.trace_output)
+            elif top_level_chunk[0] == InterpreterBase.TEMPLATE_CLASS_DEF:
+                # Parse definition
+                new_class_name = top_level_chunk[1]
 
-            # Create that class and add it to storage
-            if new_class_name in self.__classes:
-                self.error(ErrorType.TYPE_ERROR, f"Duplicate class name {new_class_name}", new_class_name.line_num)
+                # TEMPLATE CLASSES CANNOT BE USED WITH INHERITANCE
+                if top_level_chunk[2] == InterpreterBase.INHERITS_DEF:
+                    self.error(ErrorType.SYNTAX_ERROR, f"Template classes may not be used with inheritance", new_class_name.line_num)
+
+                # Create that class and add it to storage
+                if new_class_name in self.__template_classes:
+                    self.error(ErrorType.TYPE_ERROR, f"Duplicate class name {new_class_name}", new_class_name.line_num)
+                else:
+                    current_class_list = list(discovery_list)
+                    self.__template_classes[new_class_name] = ClassDefinition(top_level_chunk, None, current_class_list, True, self, self.trace_output)
             else:
-                # current_class_list = list(self.__classes.keys()) + [str(new_class_name)]
-                current_class_list = list(discovery_list)
-                self.__classes[new_class_name] = ClassDefinition(top_level_chunk, superclass, current_class_list, self, self.trace_output)
+                continue
 
         # Find main class
         if "main" not in self.__classes:
@@ -79,4 +93,4 @@ class Interpreter(InterpreterBase):
             return self.__classes[class_name]
         
     def get_valid_class_list(self) -> List[str]:
-        return list(self.__classes.keys())
+        return list(self.__classes.keys()) + list(self.__template_classes.keys())

@@ -1,0 +1,22 @@
+(tclass MyTemplate (person_type)
+    (field person_type aPerson)
+    (method void act ((person_type p))
+        (call p act)
+    )
+)
+
+(class Person
+    (method void act ()
+        (print "talk talk talk")
+    )
+)
+
+(class main
+    (method void main ()
+        (let ((Person p_) (MyTemplate@Person tmp_))
+            (set p_ (new Person))
+            (set tmp_ (new MyTemplatedClass@Person))
+            (call tmp_ act p_)
+        )
+    )
+)
