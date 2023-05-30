@@ -7,13 +7,14 @@ import copy
 from typing import Dict, List, Self, Tuple
 
 class ClassDefinition:
-    def __init__(self, chunk: List[str | List[str]], superclass: Self | None, current_class_list: List[str], is_template_class: bool, interpreter: InterpreterBase, trace_output: bool):
+    def __init__(self, chunk: List[str | List[str]], superclass: Self | None, current_class_list: List[str], current_tclass_list: List[str], is_template_class: bool, interpreter: InterpreterBase, trace_output: bool):
         # Instance variables
         self.name = chunk[1]
         self.methods: Dict[str, List[Method]] = dict()
         self.fields: Dict[str, Field] = dict()
         self.superclass: ClassDefinition | None = superclass
         self.__current_class_list: List[str] = current_class_list
+        self.__current_tclass_list: List[str] = current_tclass_list
 
         # For template classes
         self.template_types: List[str] = None
@@ -40,7 +41,7 @@ class ClassDefinition:
                     else:
                         # Initial value not provided, use default value
                         if init_value is None:
-                            parsed_type = utils.parse_type_from_str(field_type, self.__current_class_list + list(self.template_types))
+                            parsed_type = utils.parse_type_from_str(field_type, self.__current_class_list + list(self.template_types), self.__current_tclass_list)
                             if parsed_type == Type.NULL:
                                 interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", body_chunk[0].line_num)
 
@@ -48,7 +49,7 @@ class ClassDefinition:
                             self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_type if parsed_type == Type.OBJ else None))
                         # Initial value provided
                         else:
-                            parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__current_class_list + list(self.template_types))
+                            parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__current_class_list + list(self.template_types), self.__current_tclass_list)
 
                             # parsed_type will be none if an error occurred during value parsing (only possible error is incompatible type)
                             if parsed_type == None:
@@ -67,7 +68,7 @@ class ClassDefinition:
                     method_body = body_chunk[4]
 
                     # Parse method return type
-                    method_return_type_partial: Type = utils.parse_type_from_str(method_return_type, self.__current_class_list + list(self.template_types))
+                    method_return_type_partial: Type = utils.parse_type_from_str(method_return_type, self.__current_class_list + list(self.template_types), self.__current_tclass_list)
                     if method_return_type_partial == None:
                         interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type '{method_return_type}'", body_chunk[0].line_num)
 
@@ -89,7 +90,7 @@ class ClassDefinition:
                         if __param_already_exists(method_param[1], method_params_list_parsed):
                             interpreter.error(ErrorType.NAME_ERROR, f"Duplicate formal parameter '{method_param[1]}'", body_chunk[0].line_num)
 
-                        mp_type = utils.parse_type_from_str(method_param[0], self.__current_class_list + list(self.template_types))
+                        mp_type = utils.parse_type_from_str(method_param[0], self.__current_class_list + list(self.template_types), self.__current_tclass_list)
                         if mp_type == None:
                             interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type '{mp_type}'", body_chunk[0].line_num)
                         else:
@@ -115,6 +116,7 @@ class ClassDefinition:
 
         obj.set_class_name(self.name)
         obj.set_names_of_valid_classes(self.__current_class_list + list(self.template_types))
+        obj.set_names_of_valid_tclasses(self.__current_tclass_list)
         obj.set_superclass((self.superclass).instantiate_self() if self.superclass is not None else None)
 
         # Add fields and methods

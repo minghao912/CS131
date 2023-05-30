@@ -17,6 +17,7 @@ class ObjectDefinition:
         self.class_name: str = None
         self.superclass: ObjectDefinition | None = None
         self.__names_of_valid_classes: List[str] = []
+        self.__names_of_valid_tclasses: List[str] = []
 
         self.trace_output = trace_output
 
@@ -28,6 +29,9 @@ class ObjectDefinition:
 
     def set_names_of_valid_classes(self, names_of_valid_classes: List[str]):
         self.__names_of_valid_classes = names_of_valid_classes
+
+    def set_names_of_valid_tclasses(self, names_of_valid_tclasses: List[str]):
+        self.__names_of_valid_tclasses = names_of_valid_tclasses
 
     def add_method(self, method_list: List[Method]):
         self.methods[method_list[0].name] = method_list
@@ -813,7 +817,7 @@ class ObjectDefinition:
             else:
                 # Initial value not provided, use default value
                 if init_value is None:
-                    parsed_type = utils.parse_type_from_str(field_type, interpreter.get_valid_class_list())
+                    parsed_type = utils.parse_type_from_str(field_type, interpreter.get_valid_class_list(), interpreter.get_valid_template_class_list())
                     if parsed_type == Type.NULL:
                         interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", line_num)
 
@@ -821,11 +825,13 @@ class ObjectDefinition:
                     self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_type if parsed_type == Type.OBJ else None))
                 # Initial value provided
                 else:
-                    parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__names_of_valid_classes)
+                    parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__names_of_valid_classes, self.__names_of_valid_tclasses)
 
                     # parsed_type will be none if an error occurred during value parsing (only possible error is incompatible type)
                     if parsed_type is None:
                         interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type '{field_type}' with value '{init_value}'", line_num)
+                    elif parsed_type == Type.NULL:
+                        interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", line_num)
                     elif parsed_type == Type.OBJ:
                         declared_fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
                     else:

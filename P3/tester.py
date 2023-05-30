@@ -1,7 +1,7 @@
 from interpreterv3 import Interpreter
 
 program = []
-with open('tests/ll.brewin') as f:
+with open('tests/template_simple.brewin') as f:
     program = f.read().splitlines()
     f.close()
 

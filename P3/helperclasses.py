@@ -9,6 +9,7 @@ class Type(Enum):
     NULL = 3
     OBJ = 4
     EXCEPTION = 5
+    TCLASS = 6
 
 @dataclass
 class Method:

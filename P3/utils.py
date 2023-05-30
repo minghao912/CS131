@@ -30,7 +30,7 @@ def parse_type_value(val: str) -> Tuple[Type | None, int | bool | None | str]:
     finally:
         return final_val
 
-def parse_type_from_str(type_name: str, current_class_list: List[str]) -> Type:
+def parse_type_from_str(type_name: str, current_class_list: List[str], template_class_list: List[str]) -> Type:
     match type_name:
         case InterpreterBase.INT_DEF:
             return Type.INT
@@ -45,13 +45,16 @@ def parse_type_from_str(type_name: str, current_class_list: List[str]) -> Type:
             if (firstAtSign := type_name.find('@')) != -1:
                 type_name = type_name[:firstAtSign]
                 
-            # Check if valid class/tclass
+            # Check if valid class
             if type_name in current_class_list:
                 return Type.OBJ
+            # Check if tclass
+            elif type_name in template_class_list:
+                return Type.TCLASS
             else:
                 return None
 
-def parse_value_given_type(type_name: str, val: str, current_class_list: List[str]) -> Tuple[Type | None, int | bool | None | str]:
+def parse_value_given_type(type_name: str, val: str, current_class_list: List[str], template_class_list: List[str]) -> Tuple[Type | None, int | bool | None | str]:
     match type_name:
         case InterpreterBase.INT_DEF:
             try:
@@ -74,9 +77,16 @@ def parse_value_given_type(type_name: str, val: str, current_class_list: List[st
             else:
                 return (None, None)
         case _:
+            # Check if it's a template class
+            if (firstAtSign := type_name.find('@')) != -1:
+                type_name = type_name[:firstAtSign]
+
             # Check if it's a class
             if type_name in current_class_list:
                 return (Type.OBJ, type_name)
+            # Check if it's a tclass
+            elif type_name in template_class_list:
+                return (Type.TCLASS, type_name)
             else:
                 return (Type.NULL, None)    # Signals undeclared class
 
@@ -119,6 +129,8 @@ def get_default_value(return_type: Type) -> int | bool | str | None:
         case Type.OBJ:
             return None
         case Type.NULL:
+            return None
+        case Type.TCLASS:
             return None
         case _:
             raise Exception(f"Not a valid type '{return_type}'!")
