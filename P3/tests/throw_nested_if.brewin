@@ -1,0 +1,15 @@
+(class main
+    (method bool hello ()
+        (throw "yikes!")
+    ) 
+
+    (method void main ()
+        (try
+            (if (call me hello)
+                (print "yes")
+                (print "no")
+            )
+            (print "caught exception: " exception)
+        )
+    )
+)

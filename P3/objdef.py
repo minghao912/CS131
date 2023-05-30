@@ -340,11 +340,13 @@ class ObjectDefinition:
         # Evaluate predicate
         predicate_val: bool = None
         predicate_return: Field = self.__executor_return(line_num, method_params, None, predicate, calling_class_list, interpreter)
-        if predicate_return is None or predicate_return.type != Type.BOOL:
-            interpreter.error(ErrorType.TYPE_ERROR, f"Predicate is not a boolean", line_num)
+        if predicate_return is None:
+            interpreter.error(ErrorType.TYPE_ERROR, f"Predicate cannot return null", line_num)
         # Check for exception
         elif predicate_return.type == Type.EXCEPTION:
             return (True, predicate_return)
+        elif predicate_return.type != Type.BOOL:
+            interpreter.error(ErrorType.TYPE_ERROR, f"Predicate is not a boolean", line_num)
         else:
             predicate_val: bool = predicate_return.value
         
