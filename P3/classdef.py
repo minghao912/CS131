@@ -17,6 +17,7 @@ class ClassDefinition:
         self.__current_tclass_list: List[str] = current_tclass_list
 
         # For template classes
+        self.is_template_class = is_template_class
         self.template_types: List[str] = None
         if is_template_class:
             self.template_types = chunk[2]
@@ -46,7 +47,7 @@ class ClassDefinition:
                                 interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", body_chunk[0].line_num)
 
                             default_init_value = utils.get_default_value(parsed_type)
-                            self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_type if parsed_type == Type.OBJ else None))
+                            self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_type if parsed_type == Type.OBJ or parsed_type == Type.TCLASS else None))
                         # Initial value provided
                         else:
                             parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__current_class_list + list(self.template_types), self.__current_tclass_list)
@@ -119,10 +120,73 @@ class ClassDefinition:
         obj.set_names_of_valid_tclasses(self.__current_tclass_list)
         obj.set_superclass((self.superclass).instantiate_self() if self.superclass is not None else None)
 
+        # Non-template classes only
+        if self.is_template_class:
+            return None
+        
         # Add fields and methods
         for field in self.fields.values():
             obj.add_field(copy.copy(field))
         for method_list in self.methods.values():
             obj.add_method(copy.deepcopy(method_list))
 
+        return obj
+    
+    def instantiate_self_tclass(self, template_types_actual: List[str]) -> ObjectDefinition:
+        obj = ObjectDefinition(self.trace_output)
+
+        obj.set_class_name(self.name)
+        obj.set_names_of_valid_classes(self.__current_class_list + list(self.template_types))
+        obj.set_names_of_valid_tclasses(self.__current_tclass_list)
+        obj.set_superclass((self.superclass).instantiate_self() if self.superclass is not None else None)
+
+        # Non-template classes only
+        if not self.is_template_class:
+            return None
+        
+        # Replace template types with actual types
+        matched_template_types = dict(zip(self.template_types, template_types_actual))
+
+        def __get_new_field(old_field: Field, new_type: Type | str):
+            if isinstance(new_type, str):
+                return Field(old_field.name, old_field.type, old_field.value, new_type)
+            else:
+                return Field(old_field.name, new_type, old_field.value, None)
+
+        for field in self.fields.values():
+            new_field = copy.copy(field)
+
+            if new_field.obj_name in matched_template_types.keys():
+                new_field = __get_new_field(new_field, matched_template_types[new_field.obj_name])
+
+            obj.add_field(new_field)
+
+        for method_list in self.methods.values():
+            new_methods = copy.deepcopy(method_list)
+
+            for new_method in new_methods:
+                # Replace return type
+                if new_method.return_type[1] in matched_template_types.keys():
+                    new_ret_type_temp_field = __get_new_field(Field("temp_replace_ret_type", new_method.return_type[0], None, new_method.return_type[1]), matched_template_types[new_method.return_type[1]])
+                    new_method.return_type = (new_ret_type_temp_field.type, new_ret_type_temp_field.obj_name)
+                
+                # Replace param types
+                for i, method_param in enumerate(new_method.parameters):
+                    if method_param[2] is not None and method_param[2] in matched_template_types.keys():
+                        new_param_temp_field = __get_new_field(Field(method_param[1], method_param[0], None, method_param[2]), matched_template_types[method_param[2]])
+                        new_method.parameters[i] = (new_param_temp_field.type, new_param_temp_field.name, new_param_temp_field.obj_name)
+
+                # Replace references in actual body
+                def __find_and_replace(body: List[str], find_replace: Dict[str, str]):
+                    for i, body_part in enumerate(body):
+                        if isinstance(body_part, list):
+                            __find_and_replace(body_part, find_replace)
+                        else:
+                            if body_part in find_replace.keys():
+                                body[i] = find_replace[body_part]
+
+                __find_and_replace(new_method.body, matched_template_types)
+
+            obj.add_method(new_methods)
+        
         return obj

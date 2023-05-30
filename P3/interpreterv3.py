@@ -98,6 +98,12 @@ class Interpreter(InterpreterBase):
         else:
             return self.__classes[class_name]
         
+    def get_tclass(self, tclass_name: str) -> ClassDefinition | None:
+        if tclass_name not in self.__template_classes:
+            return None
+        else:
+            return self.__template_classes[tclass_name]
+        
     def get_valid_class_list(self) -> List[str]:
         return list(self.__classes.keys())
     

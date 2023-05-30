@@ -562,6 +562,10 @@ class ObjectDefinition:
         else:
             interpreter.error(ErrorType.NAME_ERROR, f"Unknown variable: {var_name}", line_num)
 
+        # If the field to be set is a template class
+        if field_to_be_set.type == Type.TCLASS:
+            field_to_be_set.type = Type.OBJ
+
         # Check compatible types
         try:
             utils.check_compatible_types(field_to_be_set, Field("temp", set_to_this[0], set_to_this[1], set_to_this[2]), interpreter)
@@ -625,11 +629,27 @@ class ObjectDefinition:
     ) -> Field:
         # Look for requested class
         other_class = interpreter.get_class(arg)
+        other_class_obj: ObjectDefinition = None
         if other_class is None:
-            interpreter.error(ErrorType.TYPE_ERROR, f"Unknown class: {arg}", line_num)
-
-        # Create a new object
-        other_class_obj = other_class.instantiate_self()
+            # Check for template class
+            if (first_at_sign := arg.find('@')) != -1:
+                other_class = interpreter.get_tclass(arg[:first_at_sign])
+                if other_class is None:
+                    interpreter.error(ErrorType.TYPE_ERROR, f"Unknown class: {arg}", line_num)
+                # Create a new object
+                else:
+                    templated_types = arg[first_at_sign + 1:].split('@')
+                    actual_templated_types = []
+                    for tt in templated_types:
+                        parsed_tt = utils.parse_type_from_str(tt, interpreter.get_valid_class_list(), interpreter.get_valid_template_class_list())
+                        actual_templated_types.append(tt if parsed_tt in [Type.OBJ, Type.TCLASS] else parsed_tt)
+                        
+                    other_class_obj = other_class.instantiate_self_tclass(actual_templated_types)
+            else:
+                interpreter.error(ErrorType.TYPE_ERROR, f"Unknown class: {arg}", line_num)
+        else:
+            # Create a new object
+            other_class_obj = other_class.instantiate_self()
 
         # Return object as field
         return Field("temp", Type.OBJ, other_class_obj, arg)
@@ -822,7 +842,7 @@ class ObjectDefinition:
                         interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", line_num)
 
                     default_init_value = utils.get_default_value(parsed_type)
-                    self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_type if parsed_type == Type.OBJ else None))
+                    self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_type if parsed_type == Type.OBJ or parsed_type == Type.TCLASS else None))
                 # Initial value provided
                 else:
                     parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__names_of_valid_classes, self.__names_of_valid_tclasses)

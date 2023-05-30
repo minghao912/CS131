@@ -3,6 +3,12 @@
     (method void act ((person_type p))
         (call p act)
     )
+    (method person_type getPerson ()
+        (let ((person_type tmp__))
+            (set tmp__ aPerson)
+            (return tmp__)
+        )
+    )
 )
 
 (class Person
@@ -12,8 +18,10 @@
 )
 
 (class main
+    (field MyTemplate@Person pp)
+
     (method void main ()
-        (let ((Person p_) (MyTemplate@PersonNonExistent tmp_))
+        (let ((Person p_) (MyTemplate@Person tmp_))
             (set p_ (new Person))
             (set tmp_ (new MyTemplate@Person))
             (call tmp_ act p_)
