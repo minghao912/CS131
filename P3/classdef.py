@@ -52,7 +52,7 @@ class ClassDefinition:
                                     interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", body_chunk[0].line_num)
 
                                 default_init_value = utils.get_default_value(parsed_type)
-                                self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_type if parsed_type == Type.OBJ else None))
+                                self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_type if parsed_type == Type.OBJ or parsed_type == Type.TCLASS else None))
                         # Initial value provided
                         else:
                             # For templated types, store init value to be type-checked later
