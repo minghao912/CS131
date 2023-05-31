@@ -9,7 +9,9 @@ class Type(Enum):
     NULL = 3
     OBJ = 4
     EXCEPTION = 5
-    TCLASS = 6
+    TCLASS = 6  # Not yet set template classes
+    TUNINIT = 7 # For uninitialized template types
+    TINIT = 8   # For initialized template types
 
 @dataclass
 class Method:

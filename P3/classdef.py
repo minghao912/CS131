@@ -42,25 +42,35 @@ class ClassDefinition:
                     else:
                         # Initial value not provided, use default value
                         if init_value is None:
-                            parsed_type = utils.parse_type_from_str(field_type, self.__current_class_list + list(self.template_types), self.__current_tclass_list)
-                            if parsed_type is None or parsed_type == Type.NULL:
-                                interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", body_chunk[0].line_num)
+                            # For templated types, store temp var to be changed later
+                            if is_template_class and field_type in self.template_types:
+                                self.fields[field_name] = Field(field_name, Type.TUNINIT, None, field_type)
+                            # For regular class, use default value
+                            else:
+                                parsed_type = utils.parse_type_from_str(field_type, self.__current_class_list + list(self.template_types), self.__current_tclass_list)
+                                if parsed_type is None or parsed_type == Type.NULL:
+                                    interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", body_chunk[0].line_num)
 
-                            default_init_value = utils.get_default_value(parsed_type)
-                            self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_type if parsed_type == Type.OBJ or parsed_type == Type.TCLASS else None))
+                                default_init_value = utils.get_default_value(parsed_type)
+                                self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_type if parsed_type == Type.OBJ else None))
                         # Initial value provided
                         else:
-                            parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__current_class_list + list(self.template_types), self.__current_tclass_list)
-
-                            # parsed_type will be none if an error occurred during value parsing (only possible error is incompatible type)
-                            if parsed_type == None:
-                                interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type '{field_type}' with value '{init_value}'", body_chunk[0].line_num)
-                            elif parsed_type == Type.NULL:
-                                interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type if parsed_value is None else parsed_value}'", body_chunk[0].line_num)
-                            elif parsed_type == Type.OBJ:
-                                self.fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
+                            # For templated types, store init value to be type-checked later
+                            if is_template_class and field_type in self.template_types:
+                                self.fields[field_name] = Field(field_name, Type.TINIT, init_value, field_type)
+                            # For regular class, use init value
                             else:
-                                self.fields[field_name] = Field(field_name, parsed_type, parsed_value)
+                                parsed_type, parsed_value = utils.parse_value_given_type(field_type, init_value, self.__current_class_list + list(self.template_types), self.__current_tclass_list)
+
+                                # parsed_type will be none if an error occurred during value parsing (only possible error is incompatible type)
+                                if parsed_type == None:
+                                    interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type '{field_type}' with value '{init_value}'", body_chunk[0].line_num)
+                                elif parsed_type == Type.NULL:
+                                    interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type if parsed_value is None else parsed_value}'", body_chunk[0].line_num)
+                                elif parsed_type == Type.OBJ:
+                                    self.fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
+                                else:
+                                    self.fields[field_name] = Field(field_name, parsed_type, parsed_value)
                 # Methods are in format [1] return_type, [2]: name, [3]: params list, [4]: body
                 case InterpreterBase.METHOD_DEF:
                     method_return_type = body_chunk[1]
@@ -132,7 +142,7 @@ class ClassDefinition:
 
         return obj
     
-    def instantiate_self_tclass(self, template_types_actual: List[str]) -> ObjectDefinition:
+    def instantiate_self_tclass(self, template_types_actual: List[str], interpreter: InterpreterBase) -> ObjectDefinition:
         obj = ObjectDefinition(self.trace_output)
 
         obj.set_class_name(self.name)
@@ -149,15 +159,39 @@ class ClassDefinition:
 
         def __get_new_field(old_field: Field, new_type: Type | str):
             if isinstance(new_type, str):
-                return Field(old_field.name, old_field.type, old_field.value, new_type)
+                return Field(old_field.name, Type.OBJ, old_field.value, new_type)
             else:
                 return Field(old_field.name, new_type, old_field.value, None)
 
-        for field in self.fields.values():
-            new_field = copy.copy(field)
+        for old_field in self.fields.values():
+            new_field = copy.copy(old_field)
 
+            field_was_init: bool = (old_field.type == Type.TINIT)
+            field_was_uninit: bool = (old_field.type == Type.TUNINIT)
+
+            # Replace templated types with actual types
             if new_field.obj_name in matched_template_types.keys():
                 new_field = __get_new_field(new_field, matched_template_types[new_field.obj_name])
+
+            # If field was previously uninitialized, we have to get default values now
+            if field_was_uninit:
+                default_init_value = utils.get_default_value(new_field.type)
+                new_field = Field(new_field.name, new_field.type, default_init_value, new_field.obj_name)
+
+            # If field was previously initialized, we have to do type check with new type
+            if field_was_init:
+                # Create field for init value
+                init_value_type, init_value_value = utils.parse_type_value(old_field.value)
+                if init_value_type is None or init_value_type == Type.NULL:
+                    init_field = Field("temp_field_for_type_check", Type.OBJ, init_value_value, new_field.obj_name)
+                else:
+                    init_field = Field("temp_field_for_type_check", init_value_type, init_value_value, None)
+
+                # Type check
+                try:
+                    utils.check_compatible_types(new_field, init_field, interpreter)
+                except Exception as e:
+                    interpreter.error(ErrorType.TYPE_ERROR, f"Invalid initial value '{init_field.value}' for field '{new_field.name}': {str(e)}")
 
             obj.add_field(new_field)
 

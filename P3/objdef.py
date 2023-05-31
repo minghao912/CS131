@@ -644,7 +644,7 @@ class ObjectDefinition:
                         parsed_tt = utils.parse_type_from_str(tt, interpreter.get_valid_class_list(), interpreter.get_valid_template_class_list())
                         actual_templated_types.append(tt if parsed_tt in [Type.OBJ, Type.TCLASS] else parsed_tt)
 
-                    other_class_obj = other_class.instantiate_self_tclass(actual_templated_types)
+                    other_class_obj = other_class.instantiate_self_tclass(actual_templated_types, interpreter)
             else:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Unknown class: {arg}", line_num)
         else:
