@@ -51,6 +51,18 @@ class ClassDefinition:
                                 if parsed_type is None or parsed_type == Type.NULL:
                                     interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", body_chunk[0].line_num)
 
+                                # If TCLASS, check if number of parameterized types is correct
+                                if parsed_type == Type.TCLASS:
+                                    base_tclass_name = field_type.split('@')[0]
+                                    necessary_ptypes = \
+                                        self.get_number_of_parameterized_types() if base_tclass_name == self.name \
+                                        else interpreter.get_tclass(field_type.split('@')[0]).get_number_of_parameterized_types()
+                                    actual_ptypes = len(field_type.split('@')) - 1
+
+                                    if necessary_ptypes != actual_ptypes:
+                                        interpreter.error(ErrorType.TYPE_ERROR, f"Incorrect number of parameterized types: Expected {necessary_ptypes} but got {actual_ptypes}")
+
+                                # Set value as usual
                                 default_init_value = utils.get_default_value(parsed_type)
                                 self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_type if parsed_type == Type.OBJ or parsed_type == Type.TCLASS else None))
                         # Initial value provided
@@ -69,6 +81,18 @@ class ClassDefinition:
                                     interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type if parsed_value is None else parsed_value}'", body_chunk[0].line_num)
                                 elif parsed_type == Type.OBJ:
                                     self.fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
+                                elif parsed_type == Type.TCLASS:
+                                    # Check if number of parameterized types is correct
+                                    base_tclass_name = field_type.split('@')[0]
+                                    necessary_ptypes = \
+                                        self.get_number_of_parameterized_types() if base_tclass_name == self.name \
+                                        else interpreter.get_tclass(field_type.split('@')[0]).get_number_of_parameterized_types()
+                                    actual_ptypes = len(field_type.split('@')) - 1
+
+                                    if necessary_ptypes != actual_ptypes:
+                                        interpreter.error(ErrorType.TYPE_ERROR, f"Incorrect number of parameterized types: Expected {necessary_ptypes} but got {actual_ptypes}")
+
+                                    self.fields[field_name] = Field(field_name, parsed_type, None, parsed_value)
                                 else:
                                     self.fields[field_name] = Field(field_name, parsed_type, parsed_value)
                 # Methods are in format [1] return_type, [2]: name, [3]: params list, [4]: body
@@ -224,3 +248,6 @@ class ClassDefinition:
             obj.add_method(new_methods)
         
         return obj
+    
+    def get_number_of_parameterized_types(self) -> int:
+        return len(self.template_types)

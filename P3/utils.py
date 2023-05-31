@@ -63,7 +63,7 @@ def parse_type_from_str(type_name: str, current_class_list: List[str], template_
                 return Type.OBJ
             # Check if tclass
             elif type_name in template_class_list:
-                return Type.TCLASS
+                return None # Cannot have tclass without @
             else:
                 return None
 

@@ -1,7 +1,7 @@
 from interpreterv3 import Interpreter
 
 program = []
-with open('tests/fail_template_name_err.brewin') as f:
+with open('tests/template_compare.brewin') as f:
     program = f.read().splitlines()
     f.close()
 

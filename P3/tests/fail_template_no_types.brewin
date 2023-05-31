@@ -1,0 +1,22 @@
+(tclass MyTemplatedClass (A B)
+    (field string a)
+    (field int b 5)
+
+    (method void print ()
+        (begin
+            (print a)
+            (print b)
+        )
+    )
+)
+
+(class main
+    (field MyTemplatedClass@int x)
+
+    (method void main ()
+        (let ((MyTemplatedClass@string@int is))
+            (set is (new MyTemplatedClass@string@int))
+            (call is print)
+        )
+    )
+)

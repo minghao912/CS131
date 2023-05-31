@@ -841,6 +841,15 @@ class ObjectDefinition:
                     if parsed_type is None or parsed_type == Type.NULL:
                         interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type}'", line_num)
 
+                    # If TCLASS, check if number of parameterized types is correct
+                    if parsed_type == Type.TCLASS:
+                        necessary_ptypes = interpreter.get_tclass(field_type.split('@')[0]).get_number_of_parameterized_types()
+                        actual_ptypes = len(field_type.split('@')) - 1
+
+                        if necessary_ptypes != actual_ptypes:
+                            interpreter.error(ErrorType.TYPE_ERROR, f"Incorrect number of parameterized types: Expected {necessary_ptypes} but got {actual_ptypes}")
+
+                    # Set field as usual
                     default_init_value = utils.get_default_value(parsed_type)
                     self.fields[field_name] = Field(field_name, parsed_type, default_init_value, (field_type if parsed_type == Type.OBJ or parsed_type == Type.TCLASS else None))
                 # Initial value provided
@@ -852,8 +861,17 @@ class ObjectDefinition:
                         interpreter.error(ErrorType.TYPE_ERROR, f"Incompatible type '{field_type}' with value '{init_value}'", line_num)
                     elif parsed_type == Type.NULL:
                         interpreter.error(ErrorType.TYPE_ERROR, f"Undeclared class '{field_type if parsed_value is None else parsed_value}'", line_num)
-                    elif parsed_type == Type.OBJ or parsed_type == Type.TCLASS:
+                    elif parsed_type == Type.OBJ:
                         declared_fields[field_name] = Field(field_name, parsed_type, None, parsed_value)    # last member of "Field" only used for object names
+                    elif parsed_type == Type.TCLASS:
+                        # Check if number of parameterized types is correct
+                        necessary_ptypes = interpreter.get_tclass(parsed_value.split('@')[0]).get_number_of_parameterized_types()
+                        actual_ptypes = len(field_type.split('@')) - 1
+
+                        if necessary_ptypes != actual_ptypes:
+                            interpreter.error(ErrorType.TYPE_ERROR, f"Incorrect number of parameterized types: Expected {necessary_ptypes} but got {actual_ptypes}")
+
+                        declared_fields[field_name] = Field(field_name, parsed_type, None, parsed_value)
                     else:
                         declared_fields[field_name] = Field(field_name, parsed_type, parsed_value)
 
