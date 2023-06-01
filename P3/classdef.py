@@ -108,7 +108,7 @@ class ClassDefinition:
                         interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type '{method_return_type}'", body_chunk[0].line_num)
 
                     method_return_type_parsed: Tuple[Type, str | None] = \
-                        (method_return_type_partial, method_return_type) if method_return_type_partial == Type.OBJ \
+                        (Type.OBJ, method_return_type) if method_return_type_partial == Type.OBJ or method_return_type_partial == Type.TCLASS \
                         else (method_return_type_partial, None)
 
                     # Parse each param's type (in format [0]: type, [1]: name)
@@ -235,13 +235,28 @@ class ClassDefinition:
                         new_method.parameters[i] = (new_param_temp_field.type, new_param_temp_field.name, new_param_temp_field.obj_name)
 
                 # Replace references in actual body
+                # Can only occur in
+                #   "new" statement, e.g. (new generic_type)
+                #   "let" statement, e.g. (let ((generic_type g1) (generic_type g2)))
                 def __find_and_replace(body: List[str], find_replace: Dict[str, str]):
                     for i, body_part in enumerate(body):
                         if isinstance(body_part, list):
                             __find_and_replace(body_part, find_replace)
                         else:
-                            if body_part in find_replace.keys():
-                                body[i] = find_replace[body_part]
+                            match body_part:
+                                case InterpreterBase.NEW_DEF:
+                                    # Replace typename
+                                    # The chunk after "new" is always the type
+                                    if body[i + 1] in matched_template_types.keys():
+                                        body[i + 1] = matched_template_types[body[i + 1]]
+                                case InterpreterBase.LET_DEF:
+                                    # Replace typename in declaration
+                                    # declarations in format [0]: type, [1]: name, [2]: init_value?
+                                    for declaration in body[i + 1]:
+                                        if declaration[0] in matched_template_types.keys():
+                                            declaration[0] = matched_template_types[declaration[0]]
+                                case _:
+                                    pass
 
                 __find_and_replace(new_method.body, matched_template_types)
 

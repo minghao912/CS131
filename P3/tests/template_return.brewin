@@ -1,0 +1,37 @@
+(tclass MyTemplate (person_type)
+    (field person_type aPerson)
+
+    (method void setPerson ((person_type person))
+        (set aPerson person)
+    )
+
+    (method void act ()
+        (call aPerson act)
+    )
+)
+
+(class Person
+    (method void act ()
+        (print "talk talk talk")
+    )
+)
+
+(class main
+    (field MyTemplate@Person pp)
+
+    (method MyTemplate@Person getTemplate ((Person p))
+        (let ((MyTemplate@Person tmp_))
+            (set tmp_ (new MyTemplate@Person))
+            (call tmp_ setPerson p)
+            (return tmp_)
+        )
+    )
+
+    (method void main ()
+        (let ((Person p_) (MyTemplate@Person tmp_))
+            (set p_ (new Person))
+            (set tmp_ (call me getTemplate p_))
+            (call tmp_ act)
+        )
+    )
+)

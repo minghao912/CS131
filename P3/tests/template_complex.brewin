@@ -1,0 +1,36 @@
+(tclass MyTemplate (person_type)
+    (field person_type aPerson)
+
+    (method void setPerson ((person_type person))
+        (set aPerson person)
+    )
+
+    (method void act ()
+        (call aPerson act)
+    )
+)
+
+(class Person
+    (method void act ()
+        (print "talk talk talk")
+    )
+)
+
+(class Student inherits Person
+    (method void act()
+        (print "study study study")
+    )
+)
+
+(class main
+    (field MyTemplate@Person pp)
+
+    (method void main ()
+        (let ((Person p_) (Student s_) (MyTemplate@Student tmp_))
+            (set s_ (new Student))
+            (set tmp_ (new MyTemplate@Student))
+            (call tmp_ setPerson s_)
+            (call tmp_ act)
+        )
+    )
+)
