@@ -130,9 +130,11 @@ class ClassDefinition:
                             interpreter.error(ErrorType.TYPE_ERROR, f"Invalid type '{mp_type}'", body_chunk[0].line_num)
                         else:
                             method_params_list_parsed.append(
-                                (mp_type, method_param[1], method_param[0]) if mp_type == Type.OBJ \
+                                (mp_type, method_param[1], method_param[0]) if mp_type == Type.OBJ or mp_type == Type.TCLASS \
                                 else  (mp_type, method_param[1], None)
                             )
+
+                    # Convert TCLASS types to regular OBJ type in non-tclasses?
 
                     # Check duplicate method
                     # First check name

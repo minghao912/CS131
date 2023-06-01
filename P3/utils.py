@@ -118,7 +118,7 @@ def parse_value_given_type(type_name: str, val: str, current_class_list: List[st
 
 def check_compatible_types(field1: Field, field2: Field, interpreter: InterpreterBase) -> bool:
     # Check compatible types
-    if field1.type == Type.OBJ and field2.type in [Type.OBJ, Type.TCLASS, Type.NULL]:
+    if field1.type in [Type.OBJ, Type.TCLASS] and field2.type in [Type.OBJ, Type.TCLASS, Type.NULL]:
         if field2.type == Type.NULL: # Any object can be set to null
             return True
         elif field1.obj_name == field2.obj_name:   # For objects, compare the object name
