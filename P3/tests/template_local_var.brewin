@@ -1,0 +1,22 @@
+(tclass MyTemplatedClass (shape_type)
+    (method void act ()
+        (let ((shape_type s))
+            (set s (new shape_type))
+            (print (call s get_area))
+        )
+    ) 
+)
+
+(class Square
+  (field int side 10)
+  (method int get_area () (return (* side side)))
+)
+
+(class main
+  (method void main ()
+    (let ((MyTemplatedClass@Square t))
+      (set t (new MyTemplatedClass@Square))
+      (call t act)
+    )
+  )
+)

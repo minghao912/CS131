@@ -1,7 +1,7 @@
 from interpreterv3 import Interpreter
 
 program = []
-with open('tests/template_ex3.brewin') as f:
+with open('tests/template_local_var.brewin') as f:
     program = f.read().splitlines()
     f.close()
 
