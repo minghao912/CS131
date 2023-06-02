@@ -194,16 +194,16 @@ class ObjectDefinition:
                 return StatementReturn(False, new_object_def)
 
             case "+" | "-" | "*" | "/" | "%":
-                arithmetic_result = self.__executor_arithmetic(command.line_num, parameters, command, statement[1:], calling_class_list, interpreter)
-                return StatementReturn(False, arithmetic_result)
+                return_initiated, arithmetic_result = self.__executor_arithmetic(command.line_num, parameters, command, statement[1:], calling_class_list, interpreter)
+                return StatementReturn(return_initiated, arithmetic_result)
 
             case "<" | ">" | "<=" | ">=" | "!=" | "==" | "&" | "|":
-                comparison_result = self.__executor_compare(command.line_num, parameters, command, statement[1:], calling_class_list, interpreter)
-                return StatementReturn(False, comparison_result)
+                return_initiated, comparison_result = self.__executor_compare(command.line_num, parameters, command, statement[1:], calling_class_list, interpreter)
+                return StatementReturn(return_initiated, comparison_result)
 
             case "!":
-                notted_boolean = self.__executor_unary_not(command.line_num, parameters, statement[1], calling_class_list, interpreter)
-                return StatementReturn(False, notted_boolean)
+                return_initiated, notted_boolean = self.__executor_unary_not(command.line_num, parameters, statement[1], calling_class_list, interpreter)
+                return StatementReturn(return_initiated, notted_boolean)
 
             # In format [1] all declared vars (list), [2...] substatements
             case InterpreterBase.LET_DEF:
@@ -639,12 +639,7 @@ class ObjectDefinition:
                 # Create a new object
                 else:
                     templated_types = arg[first_at_sign + 1:].split('@')
-                    actual_templated_types = []
-                    for tt in templated_types:
-                        parsed_tt = utils.parse_type_from_str(tt, interpreter.get_valid_class_list(), interpreter.get_valid_template_class_list())
-                        actual_templated_types.append(tt if parsed_tt in [Type.OBJ, Type.TCLASS] else parsed_tt)
-
-                    other_class_obj = other_class.instantiate_self_tclass(actual_templated_types, interpreter)
+                    other_class_obj = other_class.instantiate_self_tclass(templated_types, interpreter)
             else:
                 interpreter.error(ErrorType.TYPE_ERROR, f"Unknown class: {arg}", line_num)
         else:
@@ -662,7 +657,7 @@ class ObjectDefinition:
         args: List[Field],
         calling_class_list: List[Self],
         interpreter: InterpreterBase
-    ) -> Field:
+    ) -> Tuple[bool, Field]:
         if (len(args) > 2):
             interpreter.error(ErrorType.SYNTAX_ERROR, f"Invalid number of operands for operator: {command}", line_num)
 
@@ -700,7 +695,7 @@ class ObjectDefinition:
             case "%":
                 result = arg_values[0].value % arg_values[1].value
 
-        return Field("temp", Type.STRING if both_strings else Type.INT, result)
+        return (False, Field("temp", Type.STRING if both_strings else Type.INT, result))
 
     def __executor_compare(
         self,  
@@ -710,7 +705,7 @@ class ObjectDefinition:
         args: List[Field],
         calling_class_list: List[Self],
         interpreter: InterpreterBase
-    ) -> Field:
+    ) -> Tuple[bool, Field]:
         if (len(args) > 2):
             interpreter.error(ErrorType.SYNTAX_ERROR, f"Invalid number of operands for operator: {command}", line_num)
 
@@ -794,7 +789,7 @@ class ObjectDefinition:
             case "|":
                 result = arg_values[0].value or arg_values[1].value
 
-        return Field("temp", Type.BOOL, result)
+        return (False, Field("temp", Type.BOOL, result))
 
     def __executor_unary_not(
         self,  
@@ -803,7 +798,7 @@ class ObjectDefinition:
         arg: str, 
         calling_class_list: List[Self],
         interpreter: InterpreterBase
-    ) -> Field:
+    ) -> Tuple[bool, Field]:
         arg_value = self.__executor_return(line_num, method_params, None, arg, calling_class_list, interpreter)
         # Check for exception
         if arg_value.type == Type.EXCEPTION:
@@ -813,7 +808,7 @@ class ObjectDefinition:
         if arg_value.type != Type.BOOL:
             interpreter.error(ErrorType.TYPE_ERROR, f"The operator '!' is not compatible with the type of variable '{arg}': {arg_value.type}", line_num)
         else:
-            return Field("temp", Type.BOOL, not arg_value.value)
+            return (False, Field("temp", Type.BOOL, not arg_value.value))
 
     def __executor_let(
         self, 
