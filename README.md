@@ -1,4 +1,4 @@
-# CS 131 Spring 2023: Project Starter
+# CS 131 Spring 2023
 
 My solution for the quarter-long interpreter project for CS131: Brewin, Brewin++, and Brewin#. 
 - Brewin: [Spec](https://docs.google.com/document/d/1pPQ2qZKbbsbZGBSwvuy1Ir-NZLPMgVt95WPQuI5aPho)
