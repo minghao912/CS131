@@ -1,5 +1,10 @@
 # CS 131 Spring 2023: Project Starter
 
+My solution for the quarter-long interpreter project for CS131: Brewin, Brewin++, and Brewin#. 
+- Brewin: [Spec](https://docs.google.com/document/d/1pPQ2qZKbbsbZGBSwvuy1Ir-NZLPMgVt95WPQuI5aPho)
+- Brewin++: [Spec](https://docs.google.com/document/d/1simlDMO0TK-YNDPYjkuU1C3fcaBpbIVYRaKD1pdqJj8/edit)
+- Brewin#: [Spec](https://docs.google.com/document/d/1YqSGkY4lE5nr-u27TQ-C8vd7f21SQA-qHL1aZf0ye4s/edit)
+
 Hey there! This is a template repository that contains the necessary boilerplate for [CS 131](https://ucla-cs-131.github.io/spring-23/)'s quarter-long project: making an interpreter. The project specs are as follows:
 
 1. [Project 1 Spec](https://docs.google.com/document/d/1pPQ2qZKbbsbZGBSwvuy1Ir-NZLPMgVt95WPQuI5aPho)
